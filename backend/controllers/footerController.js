@@ -11,7 +11,7 @@ exports.getFooter = async (req, res) => {
                 branding: 'La mejor tienda de dulces',
                 facebook: '',
                 instagram: '',
-                twitter: '',
+                tiktok: '',
                 otras_redes: {}
             }
         });
@@ -24,7 +24,7 @@ exports.getFooter = async (req, res) => {
 
 exports.updateFooter = async (req, res) => {
     try {
-        const { nombre_tienda, branding, facebook, instagram, twitter, otras_redes } = req.body;
+        const { nombre_tienda, branding, facebook, instagram, tiktok, otras_redes } = req.body;
 
         // Find or create the footer record
         const [footer] = await Footer.findOrCreate({
@@ -34,7 +34,7 @@ exports.updateFooter = async (req, res) => {
                 branding: 'La mejor tienda de dulces',
                 facebook: '',
                 instagram: '',
-                twitter: '',
+                tiktok: '',
                 otras_redes: {}
             }
         });
@@ -45,7 +45,7 @@ exports.updateFooter = async (req, res) => {
             branding: branding || footer.branding,
             facebook: facebook !== undefined ? facebook : footer.facebook,
             instagram: instagram !== undefined ? instagram : footer.instagram,
-            twitter: twitter !== undefined ? twitter : footer.twitter,
+            tiktok: tiktok !== undefined ? tiktok : footer.tiktok,
             otras_redes: otras_redes || footer.otras_redes
         });
 

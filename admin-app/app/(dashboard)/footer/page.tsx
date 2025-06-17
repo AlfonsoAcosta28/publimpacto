@@ -1,6 +1,8 @@
 "use client"
 
-import { Edit, Facebook, Instagram, Twitter } from "lucide-react"
+import { FaFacebook, FaInstagramSquare } from "react-icons/fa";
+import { AiFillTikTok } from "react-icons/ai";
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -21,7 +23,7 @@ export default function FooterPage() {
     branding: "",
     facebook: "",
     instagram: "",
-    twitter: ""
+    tiktok: ""
   })
   const { toast } = useToast()
 
@@ -54,7 +56,7 @@ export default function FooterPage() {
         branding: formData.get('branding') as string,
         facebook: formData.get('facebook') as string,
         instagram: formData.get('instagram') as string,
-        twitter: formData.get('twitter') as string,
+        tiktok: formData.get('tiktok') as string,
       }
 
       await footerService.updateFooter(updatedData)
@@ -105,16 +107,16 @@ export default function FooterPage() {
               <h3 className="text-sm font-medium">Redes Sociales</h3>
               <div className="flex space-x-4 mt-2">
                 <div className="flex items-center">
-                  <Facebook className="h-5 w-5 text-blue-600 mr-2" />
+                  <FaFacebook className="h-5 w-5 text-blue-600 mr-2" />
                   <span className="text-gray-600">{footerData.facebook}</span>
                 </div>
                 <div className="flex items-center">
-                  <Instagram className="h-5 w-5 text-pink-600 mr-2" />
+                  <FaInstagramSquare className="h-5 w-5 text-pink-600 mr-2" />
                   <span className="text-gray-600">{footerData.instagram}</span>
                 </div>
                 <div className="flex items-center">
-                  <Twitter className="h-5 w-5 text-blue-400 mr-2" />
-                  <span className="text-gray-600">{footerData.twitter}</span>
+                  <AiFillTikTok className="h-5 w-5 text-black mr-2" />
+                  <span className="text-gray-600">{footerData.tiktok}</span>
                 </div>
               </div>
             </div>
@@ -181,14 +183,14 @@ export default function FooterPage() {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="twitter" className="text-right">
-                  Twitter
+                <Label htmlFor="tiktok" className="text-right">
+                  tiktok
                 </Label>
                 <Input
-                  id="twitter"
-                  name="twitter"
+                  id="tiktok"
+                  name="tiktok"
                   className="col-span-3"
-                  defaultValue={footerData.twitter}
+                  defaultValue={footerData.tiktok}
                 />
               </div>
             </div>

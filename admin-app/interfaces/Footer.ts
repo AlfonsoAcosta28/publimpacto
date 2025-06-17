@@ -3,5 +3,5 @@ export interface FooterData {
   branding: string
   facebook: string
   instagram: string
-  twitter: string
+  tiktok: string
 }

@@ -23,7 +23,7 @@ const Footer = sequelize.define('Footer', {
     type: DataTypes.STRING(255),
     allowNull: true
   },
-  twitter: {
+  tiktok: {
     type: DataTypes.STRING(255),
     allowNull: true
   },

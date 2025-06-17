@@ -20,6 +20,9 @@ import {
   Truck,
   PackageOpen
 } from "lucide-react"
+
+import { GrServices } from "react-icons/gr";
+import { MdCategory } from "react-icons/md";
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -45,7 +48,8 @@ export default function DashboardLayout({
   const navigationItems = [
     { path: '/dashboard', label: 'Dashboard', icon: ChartArea },
     { path: '/products', label: 'Productos', icon: Package },
-    { path: '/categories', label: 'Categorías', icon: Tag },
+    { path: '/services', label: 'Servicios', icon: GrServices },
+    { path: '/categories', label: 'Categorías', icon: MdCategory },
     { path: '/inventory', label:'Inventario', icon: PackageOpen },
     { path: '/orders', label: 'Pedidos', icon: ShoppingBag },
     { path: '/users', label: 'Usuarios', icon: Users },
