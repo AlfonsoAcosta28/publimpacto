@@ -25,6 +25,8 @@ export interface Product {
   image?: string; // URL de la imagen principal
   ProductImages?: ProductImage[];
   category?: Category;
+  discount_percentage?: number;
+  personalization_price?: number;
 }
 
 export interface CreateProductData {

@@ -5,6 +5,7 @@ import Image from "next/image"
 import {
   Search,
   MoreHorizontal,
+  Percent,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -45,6 +46,8 @@ export default function ProductsPage() {
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | File[] | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDiscountOpen, setIsDiscountOpen] = useState(false);
+  const [selectedProductForDiscount, setSelectedProductForDiscount] = useState<Product | null>(null);
 
   // Fetch products and categories on mount
   useEffect(() => {
@@ -54,6 +57,7 @@ export default function ProductsPage() {
           productService.getAllProducts(),
         ]);
 
+        console.log('Productos recibidos:', productsData);
         setProducts(productsData);
         // console.log(productsData);
       } catch (error) {
@@ -221,6 +225,67 @@ export default function ProductsPage() {
           timer: 1500
         });
       }
+    }
+  };
+
+  const handleApplyDiscount = async (formData: FormData) => {
+    try {
+      if (!selectedProductForDiscount) return;
+
+      const discountType = formData.get('discountType') as 'percentage' | 'price';
+      const value = parseFloat(formData.get('value') as string);
+
+      await productService.applyDiscount(
+        selectedProductForDiscount.id,
+        discountType,
+        value
+      );
+
+      // Actualizar la lista de productos
+      const updatedProducts = await productService.getAllProducts();
+      setProducts(updatedProducts);
+      setIsDiscountOpen(false);
+      setSelectedProductForDiscount(null);
+
+      Swal.fire({
+        title: "Éxito",
+        text: "Descuento aplicado correctamente",
+        icon: "success",
+        timer: 1500
+      });
+    } catch (error) {
+      console.error('Error applying discount:', error);
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo aplicar el descuento",
+        icon: "error",
+        timer: 1500
+      });
+    }
+  };
+
+  const handleRemoveDiscount = async (id: number) => {
+    try {
+      await productService.removeDiscount(id);
+
+      // Actualizar la lista de productos
+      const updatedProducts = await productService.getAllProducts();
+      setProducts(updatedProducts);
+
+      Swal.fire({
+        title: "Éxito",
+        text: "Descuento eliminado correctamente",
+        icon: "success",
+        timer: 1500
+      });
+    } catch (error) {
+      console.error('Error removing discount:', error);
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo eliminar el descuento",
+        icon: "error",
+        timer: 1500
+      });
     }
   };
 
@@ -402,7 +467,7 @@ export default function ProductsPage() {
           </form>
         </DialogContent>
       </Dialog>
-      
+
       <Card className="mb-6">
         <CardHeader className="p-4 pb-0">
           <CardTitle className="text-base font-medium">Lista de Productos</CardTitle>
@@ -440,6 +505,8 @@ export default function ProductsPage() {
                   <TableHead>Imagen</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Precio</TableHead>
+                  <TableHead>Descuento</TableHead>
+                  <TableHead>Precio Final</TableHead>
                   <TableHead>Categoría</TableHead>
                   <TableHead>Etiqueta</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
@@ -466,6 +533,23 @@ export default function ProductsPage() {
                     <TableCell>{product.title}</TableCell>
                     <TableCell>${product.base_price}</TableCell>
                     <TableCell>
+                      {product.discount_percentage && product.discount_percentage > 0 ? (
+                        <Badge variant="destructive" className="flex items-center gap-1">
+                          <Percent className="h-3 w-3" />
+                          {Number(product.discount_percentage).toFixed(0)}%
+                        </Badge>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {product.personalization_price && product.personalization_price > 0 ? (
+                        <span className="font-medium">${Number(product.personalization_price).toFixed(2)}</span>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell>
                       {categories.find((c) => c.id === product.category_id)?.title || "Sin categoría"}
                     </TableCell>
                     <TableCell>
@@ -485,7 +569,28 @@ export default function ProductsPage() {
                           }}>
                             Editar
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
+                          {product.discount_percentage ? (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => handleRemoveDiscount(product.id)}>
+                                Eliminar Descuento
+                              </DropdownMenuItem>
+                            </>
+                          ) : (
+                            <>
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedProductForDiscount(product);
+                                setIsDiscountOpen(true);
+                              }}>
+                                Agregar Descuento
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                            </>
+
+                          )}
+
                           <DropdownMenuItem
                             className="text-red-600"
                             onClick={() => handleDeleteProduct(product.id)}
@@ -503,6 +608,52 @@ export default function ProductsPage() {
         </CardContent>
       </Card>
 
+      {/* Diálogo de Descuento */}
+      <Dialog open={isDiscountOpen} onOpenChange={setIsDiscountOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            await handleApplyDiscount(formData);
+          }}>
+            <DialogHeader>
+              <DialogTitle>Aplicar Descuento</DialogTitle>
+              <DialogDescription>
+                Aplica un descuento al producto {selectedProductForDiscount?.title}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="discountType" className="text-right">Tipo</Label>
+                <Select name="discountType" defaultValue="percentage">
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecciona el tipo de descuento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percentage">Porcentaje</SelectItem>
+                    <SelectItem value="price">Precio Final</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="value" className="text-right">Valor</Label>
+                <Input
+                  id="value"
+                  name="value"
+                  type="number"
+                  step="0.01"
+                  placeholder="Ingresa el valor"
+                  className="col-span-3"
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">Aplicar Descuento</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
     </>
   )

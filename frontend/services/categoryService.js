@@ -11,15 +11,15 @@ export const categoryService = {
     return response.data;
   },
   
-  getCategoryWithProducts: async (id) => {
-    const response = await api.get(`/categories/${id}/products`);
-    return response.data;
-  },
+  // getCategoryWithProducts: async (id) => {
+  //   const response = await api.get(`/categories/${id}/products`);
+  //   return response.data;
+  // },
   
-  getRecentCategories: async (limit = 3) => {
-    const response = await api.get(`/categories/recent?limit=${limit}`);
-    return response.data;
-  },
+  // getRecentCategories: async (limit = 3) => {
+  //   const response = await api.get(`/categories/recent?limit=${limit}`);
+  //   return response.data;
+  // },
 };
 
 export default categoryService;

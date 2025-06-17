@@ -73,7 +73,7 @@ exports.createBanner = async (req, res) => {
   } catch (error) {
     // Si hay un error, eliminar la imagen subida
     if (req.file) {
-      const imagePath = path.join(__dirname, '../../public', req.file.path);
+      const imagePath = path.join(__dirname, '../', req.file.path);
       fs.unlink(imagePath, (err) => {
         if (err) console.error('Error al eliminar la imagen:', err);
       });
@@ -96,7 +96,7 @@ exports.updateBanner = async (req, res) => {
     if (req.file) {
       // Eliminar la imagen anterior
       if (banner.imagen) {
-        const oldImagePath = path.join(__dirname, '../../public', banner.imagen);
+        const oldImagePath = path.join(__dirname, '../', banner.imagen);
         fs.unlink(oldImagePath, (err) => {
           if (err) console.error('Error al eliminar la imagen anterior:', err);
         });
@@ -122,7 +122,7 @@ exports.updateBanner = async (req, res) => {
   } catch (error) {
     // Si hay un error y se subió una nueva imagen, eliminarla
     if (req.file) {
-      const imagePath = path.join(__dirname, '../../public', req.file.path);
+      const imagePath = path.join(__dirname, '../', req.file.path);
       fs.unlink(imagePath, (err) => {
         if (err) console.error('Error al eliminar la imagen:', err);
       });
@@ -140,7 +140,7 @@ exports.deleteBanner = async (req, res) => {
 
     // Eliminar la imagen asociada
     if (banner.imagen) {
-      const imagePath = path.join(__dirname, '../../public', banner.imagen);
+      const imagePath = path.join(__dirname, '../', banner.imagen);
       fs.unlink(imagePath, (err) => {
         if (err) console.error('Error al eliminar la imagen:', err);
       });

@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 interface Product {
   id: number;
   title: string;
-  price: string;
+  base_price: string;
   description: string;
   category_id: number;
   image: string;
@@ -177,7 +177,7 @@ export default function AddInventoryPage() {
                     className={selectedProduct?.id === product.id ? 'bg-gray-100' : ''}
                   >
                     <TableCell>{product.title}</TableCell>
-                    <TableCell>${product.price}</TableCell>
+                    <TableCell>${product.base_price}</TableCell>
                     <TableCell>
                       <Button
                         variant="outline"

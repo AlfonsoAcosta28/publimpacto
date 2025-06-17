@@ -15,6 +15,7 @@ import { bannerService } from "@/services/bannerService"
 import { toast } from "sonner"
 import { Banner, BannerData } from "@/interfaces/Banner"
 import { IoMdReturnLeft } from "react-icons/io";
+import Swal from 'sweetalert2'
 
 const gradientModels = [
   { id: 1, color: "from-blue-600 to-purple-600" },
@@ -94,13 +95,32 @@ export default function BannersPage() {
   }
 
   const handleDeleteBanner = async (id: number) => {
-    if (confirm("¿Estás seguro de que deseas eliminar este banner?")) {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: "No podrás revertir esta acción",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
       try {
         await bannerService.deleteBanner(id)
-        toast.success("Banner eliminado correctamente")
+        Swal.fire(
+          '¡Eliminado!',
+          'El banner ha sido eliminado correctamente.',
+          'success'
+        )
         loadBanners()
       } catch (error) {
-        toast.error("Error al eliminar el banner")
+        Swal.fire(
+          'Error',
+          'Hubo un error al eliminar el banner.',
+          'error'
+        )
       }
     }
   }

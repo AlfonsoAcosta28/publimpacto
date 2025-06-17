@@ -14,7 +14,10 @@ export interface ProductInterface {
   id: string;
   title: string;
   description: string;
-  price: number;
+  base_price: number;
+  personalization_price: number;
+  discount_percentage: number;
+  badge?: string;
   image?: string;
   ProductImages?: ProductImage[];
   inventory?: Inventory;

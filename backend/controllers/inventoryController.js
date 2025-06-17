@@ -34,7 +34,7 @@ exports.getAllInventory = async (req, res) => {
             include: [{
                 model: Product,
                 as: 'product',
-                attributes: ['id', 'title', 'price', 'category_id']
+                attributes: ['id', 'title', 'base_price', 'category_id']
             }],
             limit: parseInt(limit),
             offset: parseInt(offset),
@@ -71,7 +71,7 @@ exports.getInventoryById = async (req, res) => {
             include: [{
                 model: Product,
                 as: 'product',
-                attributes: ['id', 'title', 'description', 'price', 'category_id']
+                attributes: ['id', 'title', 'description', 'base_price', 'category_id']
             }]
         });
 
@@ -96,6 +96,8 @@ exports.getInventoryById = async (req, res) => {
     }
 }
 exports.createInventory = async (req, res) => {
+    console.log("\nINVENTARIO: ")
+    console.log(req.body)
     try {
         const {
             product_id,
@@ -140,7 +142,7 @@ exports.createInventory = async (req, res) => {
             include: [{
                 model: Product,
                 as: 'product',
-                attributes: ['id', 'title', 'price']
+                attributes: ['id', 'title', 'base_price']
             }]
         });
 
@@ -178,7 +180,7 @@ exports.updateInventory = async (req, res) => {
             include: [{
                 model: Product,
                 as: 'product',
-                attributes: ['id', 'title', 'price']
+                attributes: ['id', 'title', 'base_price']
             }]
         });
 
@@ -246,7 +248,7 @@ exports.adjustStock = async (req, res) => {
             include: [{
                 model: Product,
                 as: 'product',
-                attributes: ['id', 'title', 'price']
+                attributes: ['id', 'title', 'base_price']
             }]
         });
 
@@ -317,7 +319,7 @@ exports.getLowStockItems = async (req, res) => {
             include: [{
                 model: Product,
                 as: 'product',
-                attributes: ['id', 'title', 'price']
+                attributes: ['id', 'title', 'base_price']
             }],
             order: [['stock_quantity', 'ASC']]
         });
@@ -391,7 +393,7 @@ exports.changeInventoryStatus = async (req, res) => {
             include: [{
                 model: Product,
                 as: 'product',
-                attributes: ['id', 'title', 'price']
+                attributes: ['id', 'title', 'base_price']
             }]
         });
 

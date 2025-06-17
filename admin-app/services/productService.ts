@@ -6,6 +6,7 @@ export const productService = {
   getAllProducts: async (): Promise<Product[]> => {
     try {
       const response = await api.get('/products');
+      console.log("DATA "+response)
       return response.data;
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -160,6 +161,31 @@ export const productService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching related products:', error);
+      throw error;
+    }
+  },
+
+  // Aplicar descuento a un producto
+  applyDiscount: async (id: number, discountType: 'percentage' | 'price', value: number): Promise<any> => {
+    try {
+      const response = await api.post(`/products/${id}/discount`, {
+        discountType,
+        value
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error applying discount:', error);
+      throw error;
+    }
+  },
+
+  // Eliminar descuento de un producto
+  removeDiscount: async (id: number): Promise<any> => {
+    try {
+      const response = await api.post(`/products/${id}/discount/remove`);
+      return response.data;
+    } catch (error) {
+      console.error('Error removing discount:', error);
       throw error;
     }
   }

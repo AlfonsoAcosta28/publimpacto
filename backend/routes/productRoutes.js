@@ -10,15 +10,13 @@ const uploadFields = upload.fields([
 ]);
 
 // Public routes
-router.get('/recent', productController.getRecentProducts);
-router.get('/filter', productController.getFilteredProducts);
+router.get('/paginated', productController.getPaginatedProducts);
 router.get('/related/:productId/:categoryId', productController.getRelatedProducts);
 router.get('/:id', productController.getProductById);
 router.get('/category/:categoryId', productController.getProductsByCategory);
 
+// Admin Routes
 router.get('/', authenticateAdmin, productController.getAllProducts);
-// router.get('/admin', authenticateAdmin, productController.getAllProductsAdmin);
-// Protected routes (admin/staff only)
 router.post('/', 
   authenticateAdmin, 
   uploadFields, 
@@ -32,5 +30,11 @@ router.put('/:id',
 );
 
 router.delete('/:id', authenticateAdmin, productController.deleteProduct);
+
+// Ruta para aplicar descuentos
+router.post('/:id/discount', authenticateAdmin, productController.applyDiscount);
+
+// Ruta para eliminar descuento
+router.post('/:id/discount/remove', authenticateAdmin, productController.removeDiscount);
 
 module.exports = router;

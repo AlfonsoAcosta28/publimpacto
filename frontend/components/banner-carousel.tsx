@@ -8,7 +8,41 @@ import { ChevronLeft, ChevronRight, ShoppingBag, Palette } from "lucide-react"
 import bannerService from "@/services/bannerService"
 import { Banner } from "@/interfaces/Banner"
 
-
+const colorMap: { [key: string]: string } = {
+  // Gradientes
+  'from-blue-600 to-purple-600': 'bg-gradient-to-r from-blue-600 to-purple-600',
+  'from-green-500 to-lime-500': 'bg-gradient-to-r from-green-500 to-lime-500',
+  'from-red-500 to-yellow-500': 'bg-gradient-to-r from-red-500 to-yellow-500',
+  'from-pink-500 to-indigo-500': 'bg-gradient-to-r from-pink-500 to-indigo-500',
+  'from-teal-500 to-cyan-500': 'bg-gradient-to-r from-teal-500 to-cyan-500',
+  'from-orange-500 to-rose-500': 'bg-gradient-to-r from-orange-500 to-rose-500',
+  'from-emerald-500 to-fuchsia-500': 'bg-gradient-to-r from-emerald-500 to-fuchsia-500',
+  'from-yellow-500 to-sky-500': 'bg-gradient-to-r from-yellow-500 to-sky-500',
+  'from-violet-600 to-amber-500': 'bg-gradient-to-r from-violet-600 to-amber-500',
+  'from-gray-700 to-zinc-500': 'bg-gradient-to-r from-gray-700 to-zinc-500',
+  
+  // Colores sólidos
+  'bg-red-600': 'bg-red-600',
+  'bg-blue-600': 'bg-blue-600',
+  'bg-green-600': 'bg-green-600',
+  'bg-yellow-600': 'bg-yellow-600',
+  'bg-purple-600': 'bg-purple-600',
+  'bg-pink-600': 'bg-pink-600',
+  'bg-indigo-600': 'bg-indigo-600',
+  'bg-teal-600': 'bg-teal-600',
+  'bg-orange-600': 'bg-orange-600',
+  'bg-cyan-600': 'bg-cyan-600',
+  'bg-rose-600': 'bg-rose-600',
+  'bg-emerald-600': 'bg-emerald-600',
+  'bg-violet-600': 'bg-violet-600',
+  'bg-fuchsia-600': 'bg-fuchsia-600',
+  'bg-sky-600': 'bg-sky-600',
+  'bg-lime-600': 'bg-lime-600',
+  'bg-amber-600': 'bg-amber-600',
+  'bg-slate-600': 'bg-slate-600',
+  'bg-zinc-600': 'bg-zinc-600',
+  'bg-neutral-600': 'bg-neutral-600'
+};
 
 export default function BannerCarousel() {
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -27,7 +61,7 @@ export default function BannerCarousel() {
 
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % banners.length)
-    }, 5000) 
+    }, 6000) 
 
     return () => clearInterval(timer)
   }, [banners.length])
@@ -57,7 +91,7 @@ export default function BannerCarousel() {
             index === currentSlide ? "translate-x-0" : index < currentSlide ? "-translate-x-full" : "translate-x-full"
           }`}
         >
-          <div className={`relative w-full h-full ${banner.color.includes('from') ? `bg-gradient-to-r ${banner.color}` : banner.color}`}>
+          <div className={`relative w-full h-full ${colorMap[banner.color] || 'bg-gradient-to-r from-blue-600 to-purple-600'}`}>
             {/* Background Image */}
             <div className="absolute inset-0 opacity-20">
               <Image
