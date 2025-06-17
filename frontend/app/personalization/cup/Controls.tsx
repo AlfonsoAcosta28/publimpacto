@@ -143,7 +143,6 @@ export default function Controls({
                                             <option>Times New Roman</option>
                                             <option>Helvetica</option>
                                             <option>Roboto</option>
-                                            <option>Open Sans</option>
                                         </select>
                                     )}
                                 </div>

@@ -45,7 +45,7 @@ export default function PreviewSection({
                                 selectedElementData.type === 'icon' ? 'Icono' : 'Fondo'}
                     </h4>
                     <p className="text-sm text-blue-600">
-                        Usa los controles azules para mover, rotar, redimensionar o eliminar este elemento.
+                        Usa los controles azules para mover, rotar, redimensionar o eliminar este elemento
                     </p>
                 </div>
             )}

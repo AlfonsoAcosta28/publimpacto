@@ -59,10 +59,55 @@ export default function PreviewCanvas({
                             userSelect: 'none',
                             backgroundColor: element.style?.backgroundColor || 'transparent',
                             borderRadius: '4px',
-                            whiteSpace: 'nowrap'
+                            whiteSpace: 'normal',
+                            width: element.style?.width || 'auto',
+                            minWidth: '50px',
+                            maxWidth: '300px',
+                            wordWrap: 'break-word',
+                            overflowWrap: 'break-word',
+                            wordBreak: 'break-word',
+                            display: 'inline-block',
+                            textAlign: element.style?.textAlign || 'left'
                         }}
                     >
                         {element.content}
+                        {element.type === 'text' && isSelected && (
+                            <div
+                                className="absolute top-0 right-0 w-4 h-full bg-blue-500/50 cursor-ew-resize hover:bg-blue-500 transition-all"
+                                style={{
+                                    transform: 'translateX(50%)',
+                                    zIndex: 1000
+                                }}
+                                onMouseDown={(e) => {
+                                    e.stopPropagation()
+                                    e.preventDefault()
+                                    setIsScaling(true)
+                                    const startX = e.clientX
+                                    const startWidth = element.style?.width || 200
+                                    
+                                    const handleMouseMove = (moveEvent: MouseEvent) => {
+                                        moveEvent.preventDefault()
+                                        const deltaX = moveEvent.clientX - startX
+                                        const newWidth = Math.max(50, Math.min(300, startWidth + deltaX))
+                                        onElementUpdate(element.id, {
+                                            style: {
+                                                ...element.style,
+                                                width: newWidth
+                                            }
+                                        })
+                                    }
+                                    
+                                    const handleMouseUp = () => {
+                                        setIsScaling(false)
+                                        document.removeEventListener('mousemove', handleMouseMove)
+                                        document.removeEventListener('mouseup', handleMouseUp)
+                                    }
+                                    
+                                    document.addEventListener('mousemove', handleMouseMove)
+                                    document.addEventListener('mouseup', handleMouseUp)
+                                }}
+                            />
+                        )}
                     </div>
                 )
                 break
@@ -150,115 +195,117 @@ export default function PreviewCanvas({
                                 }}
                             />
 
-                            <div className="absolute inset-0 hover:cursor-nw-resize">
-                                <div 
-                                    className="absolute top-0 left-0 w-3 h-3 bg-blue-500 rounded transform -translate-x-1/2 -translate-y-1/2 hover:cursor-nw-resize"
-                                    onMouseDown={(e) => {
-                                        e.stopPropagation()
-                                        setIsScaling(true)
-                                        const startX = e.clientX
-                                        const startY = e.clientY
-                                        const startScale = element.scale || 1
-                                        
-                                        const handleMouseMove = (moveEvent: MouseEvent) => {
-                                            const deltaX = moveEvent.clientX - startX
-                                            const deltaY = moveEvent.clientY - startY
-                                            const newScale = Math.max(0.1, Math.min(3, startScale + (deltaX + deltaY) / 200))
-                                            onElementUpdate(element.id, { scale: newScale })
-                                        }
-                                        
-                                        const handleMouseUp = () => {
-                                            setIsScaling(false)
-                                            document.removeEventListener('mousemove', handleMouseMove)
-                                            document.removeEventListener('mouseup', handleMouseUp)
-                                        }
-                                        
-                                        document.addEventListener('mousemove', handleMouseMove)
-                                        document.addEventListener('mouseup', handleMouseUp)
-                                    }}
-                                />
-                                <div 
-                                    className="absolute top-0 right-0 w-3 h-3 bg-blue-500 rounded transform translate-x-1/2 -translate-y-1/2 hover:cursor-ne-resize"
-                                    onMouseDown={(e) => {
-                                        e.stopPropagation()
-                                        setIsScaling(true)
-                                        const startX = e.clientX
-                                        const startY = e.clientY
-                                        const startScale = element.scale || 1
-                                        
-                                        const handleMouseMove = (moveEvent: MouseEvent) => {
-                                            const deltaX = moveEvent.clientX - startX
-                                            const deltaY = moveEvent.clientY - startY
-                                            const newScale = Math.max(0.1, Math.min(3, startScale + (deltaX + deltaY) / 200))
-                                            onElementUpdate(element.id, { scale: newScale })
-                                        }
-                                        
-                                        const handleMouseUp = () => {
-                                            setIsScaling(false)
-                                            document.removeEventListener('mousemove', handleMouseMove)
-                                            document.removeEventListener('mouseup', handleMouseUp)
-                                        }
-                                        
-                                        document.addEventListener('mousemove', handleMouseMove)
-                                        document.addEventListener('mouseup', handleMouseUp)
-                                    }}
-                                />
-                                <div 
-                                    className="absolute bottom-0 left-0 w-3 h-3 bg-blue-500 rounded transform -translate-x-1/2 translate-y-1/2 hover:cursor-sw-resize"
-                                    onMouseDown={(e) => {
-                                        e.stopPropagation()
-                                        setIsScaling(true)
-                                        const startX = e.clientX
-                                        const startY = e.clientY
-                                        const startScale = element.scale || 1
-                                        
-                                        const handleMouseMove = (moveEvent: MouseEvent) => {
-                                            const deltaX = moveEvent.clientX - startX
-                                            const deltaY = moveEvent.clientY - startY
-                                            const newScale = Math.max(0.1, Math.min(3, startScale + (deltaX + deltaY) / 200))
-                                            onElementUpdate(element.id, { scale: newScale })
-                                        }
-                                        
-                                        const handleMouseUp = () => {
-                                            setIsScaling(false)
-                                            document.removeEventListener('mousemove', handleMouseMove)
-                                            document.removeEventListener('mouseup', handleMouseUp)
-                                        }
-                                        
-                                        document.addEventListener('mousemove', handleMouseMove)
-                                        document.addEventListener('mouseup', handleMouseUp)
-                                    }}
-                                />
-                                <div 
-                                    className="absolute bottom-0 right-0 w-3 h-3 bg-blue-500 rounded transform translate-x-1/2 translate-y-1/2 hover:cursor-se-resize"
-                                    onMouseDown={(e) => {
-                                        e.stopPropagation()
-                                        setIsScaling(true)
-                                        const startX = e.clientX
-                                        const startY = e.clientY
-                                        const startScale = element.scale || 1
-                                        
-                                        const handleMouseMove = (moveEvent: MouseEvent) => {
-                                            const deltaX = moveEvent.clientX - startX
-                                            const deltaY = moveEvent.clientY - startY
-                                            const newScale = Math.max(0.1, Math.min(3, startScale + (deltaX + deltaY) / 200))
-                                            onElementUpdate(element.id, { scale: newScale })
-                                        }
-                                        
-                                        const handleMouseUp = () => {
-                                            setIsScaling(false)
-                                            document.removeEventListener('mousemove', handleMouseMove)
-                                            document.removeEventListener('mouseup', handleMouseUp)
-                                        }
-                                        
-                                        document.addEventListener('mousemove', handleMouseMove)
-                                        document.addEventListener('mouseup', handleMouseUp)
-                                    }}
-                                />
-                            </div>
+                            {element.type !== 'text' && (
+                                <div className="absolute inset-0 hover:cursor-nw-resize">
+                                    <div 
+                                        className="absolute top-0 left-0 w-3 h-3 bg-blue-500 rounded transform -translate-x-1/2 -translate-y-1/2 hover:cursor-nw-resize"
+                                        onMouseDown={(e) => {
+                                            e.stopPropagation()
+                                            setIsScaling(true)
+                                            const startX = e.clientX
+                                            const startY = e.clientY
+                                            const startScale = element.scale || 1
+                                            
+                                            const handleMouseMove = (moveEvent: MouseEvent) => {
+                                                const deltaX = moveEvent.clientX - startX
+                                                const deltaY = moveEvent.clientY - startY
+                                                const newScale = Math.max(0.1, Math.min(3, startScale + (deltaX + deltaY) / 200))
+                                                onElementUpdate(element.id, { scale: newScale })
+                                            }
+                                            
+                                            const handleMouseUp = () => {
+                                                setIsScaling(false)
+                                                document.removeEventListener('mousemove', handleMouseMove)
+                                                document.removeEventListener('mouseup', handleMouseUp)
+                                            }
+                                            
+                                            document.addEventListener('mousemove', handleMouseMove)
+                                            document.addEventListener('mouseup', handleMouseUp)
+                                        }}
+                                    />
+                                    <div 
+                                        className="absolute top-0 right-0 w-3 h-3 bg-blue-500 rounded transform translate-x-1/2 -translate-y-1/2 hover:cursor-ne-resize"
+                                        onMouseDown={(e) => {
+                                            e.stopPropagation()
+                                            setIsScaling(true)
+                                            const startX = e.clientX
+                                            const startY = e.clientY
+                                            const startScale = element.scale || 1
+                                            
+                                            const handleMouseMove = (moveEvent: MouseEvent) => {
+                                                const deltaX = moveEvent.clientX - startX
+                                                const deltaY = moveEvent.clientY - startY
+                                                const newScale = Math.max(0.1, Math.min(3, startScale + (deltaX + deltaY) / 200))
+                                                onElementUpdate(element.id, { scale: newScale })
+                                            }
+                                            
+                                            const handleMouseUp = () => {
+                                                setIsScaling(false)
+                                                document.removeEventListener('mousemove', handleMouseMove)
+                                                document.removeEventListener('mouseup', handleMouseUp)
+                                            }
+                                            
+                                            document.addEventListener('mousemove', handleMouseMove)
+                                            document.addEventListener('mouseup', handleMouseUp)
+                                        }}
+                                    />
+                                    <div 
+                                        className="absolute bottom-0 left-0 w-3 h-3 bg-blue-500 rounded transform -translate-x-1/2 translate-y-1/2 hover:cursor-sw-resize"
+                                        onMouseDown={(e) => {
+                                            e.stopPropagation()
+                                            setIsScaling(true)
+                                            const startX = e.clientX
+                                            const startY = e.clientY
+                                            const startScale = element.scale || 1
+                                            
+                                            const handleMouseMove = (moveEvent: MouseEvent) => {
+                                                const deltaX = moveEvent.clientX - startX
+                                                const deltaY = moveEvent.clientY - startY
+                                                const newScale = Math.max(0.1, Math.min(3, startScale + (deltaX + deltaY) / 200))
+                                                onElementUpdate(element.id, { scale: newScale })
+                                            }
+                                            
+                                            const handleMouseUp = () => {
+                                                setIsScaling(false)
+                                                document.removeEventListener('mousemove', handleMouseMove)
+                                                document.removeEventListener('mouseup', handleMouseUp)
+                                            }
+                                            
+                                            document.addEventListener('mousemove', handleMouseMove)
+                                            document.addEventListener('mouseup', handleMouseUp)
+                                        }}
+                                    />
+                                    <div 
+                                        className="absolute bottom-0 right-0 w-3 h-3 bg-blue-500 rounded transform translate-x-1/2 translate-y-1/2 hover:cursor-se-resize"
+                                        onMouseDown={(e) => {
+                                            e.stopPropagation()
+                                            setIsScaling(true)
+                                            const startX = e.clientX
+                                            const startY = e.clientY
+                                            const startScale = element.scale || 1
+                                            
+                                            const handleMouseMove = (moveEvent: MouseEvent) => {
+                                                const deltaX = moveEvent.clientX - startX
+                                                const deltaY = moveEvent.clientY - startY
+                                                const newScale = Math.max(0.1, Math.min(3, startScale + (deltaX + deltaY) / 200))
+                                                onElementUpdate(element.id, { scale: newScale })
+                                            }
+                                            
+                                            const handleMouseUp = () => {
+                                                setIsScaling(false)
+                                                document.removeEventListener('mousemove', handleMouseMove)
+                                                document.removeEventListener('mouseup', handleMouseUp)
+                                            }
+                                            
+                                            document.addEventListener('mousemove', handleMouseMove)
+                                            document.addEventListener('mouseup', handleMouseUp)
+                                        }}
+                                    />
+                                </div>
+                            )}
                             {/* Botones de control */}
                             <div className="absolute -top-8 right-0 flex gap-2">
-                            <button
+                                <button
                                     onClick={(e) => {
                                         e.stopPropagation()
                                         const currentRotation = element.rotation || 0;
@@ -315,13 +362,6 @@ export default function PreviewCanvas({
             >
                 {elements.filter(el => el.type !== 'background').map(renderElement)}
                 
-                {/* Líneas guía para debug (opcional) */}
-                {process.env.NODE_ENV === 'development' && (
-                    <>
-                        <div className="absolute top-0 left-1/2 w-px h-full bg-red-300 opacity-30 pointer-events-none" />
-                        <div className="absolute left-0 top-1/2 w-full h-px bg-red-300 opacity-30 pointer-events-none" />
-                    </>
-                )}
             </div>
         </div>
     )
