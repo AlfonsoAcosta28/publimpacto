@@ -10,6 +10,9 @@ const OrderItem = require('./OrderItem');
 const ProductImage = require('./ProductImage');
 const Address = require('./Address');
 const Inventory = require('./Inventory');
+const Service = require('./Service');
+const ServiceOption = require('./ServiceOption');
+const ServiceOptionValue = require('./ServiceOptionValue');
 
 // Define model associations
 Category.hasMany(Product, { foreignKey: 'category_id' });
@@ -38,6 +41,12 @@ Address.hasMany(Order, { foreignKey: 'address_id', as: 'orders' });
 Product.hasOne(Inventory, { foreignKey: 'product_id', as: 'inventory' });
 Inventory.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
+Service.hasMany(ServiceOption, { foreignKey: 'service_id', as: 'options' });
+ServiceOption.belongsTo(Service, { foreignKey: 'service_id' });
+
+ServiceOption.hasMany(ServiceOptionValue, { foreignKey: 'service_option_id', as: 'values' });
+ServiceOptionValue.belongsTo(ServiceOption, { foreignKey: 'service_option_id' });
+
 // Export models and sequelize instance
 module.exports = {
   sequelize,
@@ -51,6 +60,9 @@ module.exports = {
   OrderItem,
   ProductImage,
   Address,
-  Inventory
+  Inventory,
+  Service,
+  ServiceOption, 
+  ServiceOptionValue
 };
 

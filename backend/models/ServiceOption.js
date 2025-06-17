@@ -1,3 +1,6 @@
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
 const ServiceOption = sequelize.define('ServiceOption', {
     id: {
       type: DataTypes.INTEGER,
@@ -29,3 +32,4 @@ const ServiceOption = sequelize.define('ServiceOption', {
     timestamps: true
   });
   
+  module.exports = ServiceOption;
