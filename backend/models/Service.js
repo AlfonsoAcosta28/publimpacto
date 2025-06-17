@@ -24,6 +24,11 @@ const Service = sequelize.define('Service', {
     allowNull: true,
     defaultValue: 0
   },
+  personalization_price: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0
+  },
   deleted_at: {
     type: DataTypes.DATE,
     allowNull: true

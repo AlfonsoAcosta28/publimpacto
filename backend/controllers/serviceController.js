@@ -55,13 +55,13 @@ exports.getServiceById = async (req, res) => {
 // Crear un nuevo servicio
 exports.createService = async (req, res) => {
   try {
-    const { name, description, base_price, discount_percentage } = req.body;
+    const { name, description, base_price } = req.body;
     
     const service = await Service.create({
       name,
       description,
       base_price,
-      discount_percentage: discount_percentage || 0
+      discount_percentage: 0
     });
 
     res.status(201).json(service);

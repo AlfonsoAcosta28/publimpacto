@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const serviceController = require('../controllers/serviceController');
-// const authMiddleware = require('../middleware/authMiddleware');
+const { authenticateAdmin } = require('../middleware/auth');
 
 // Configuración de multer para subida de archivos
 const storage = multer.diskStorage({
@@ -33,9 +33,9 @@ router.get('/', serviceController.getAllServices);
 router.get('/:id', serviceController.getServiceById);
 
 
-router.post('/', serviceController.createService);
-router.put('/:id', serviceController.updateService);
-router.delete('/:id', serviceController.deleteService);
+router.post('/', authenticateAdmin,serviceController.createService);
+router.put('/:id',authenticateAdmin, serviceController.updateService);
+router.delete('/:id',authenticateAdmin, serviceController.deleteService);
 
 // Rutas para documentos
 router.post('/:id/documents', upload.single('document'), serviceController.uploadServiceDocument);
