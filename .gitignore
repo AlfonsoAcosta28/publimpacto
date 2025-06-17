@@ -1,0 +1,33 @@
+# node modules
+node_modules/
+
+# entornos y configuración local
+.env
+.env.local
+.env.*.local
+
+# directorios de compilación
+.next/
+out/
+dist/
+build/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# sistema operativo
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/
+.idea/
+*.swp
+
+# coverage tests
+coverage/
+
+
+backend/uploads/

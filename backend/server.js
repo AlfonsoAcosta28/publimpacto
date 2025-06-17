@@ -1,0 +1,105 @@
+// server.js
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const passport = require('./config/passport');
+const { sequelize } = require('./models');
+
+// Import routes
+const authRoutes = require('./routes/authRoutes');
+const bannerRoutes = require('./routes/bannerRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
+const productRoutes = require('./routes/productRoutes');
+const aboutUsRoutes = require('./routes/aboutUsRoutes');
+const footerRoutes = require('./routes/footerRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+const shipping_prices = require('./routes/shoppingPriceRouter')
+const addressRoutes = require('./routes/addressRoutes')
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const inventoryRoutes = require('./routes/inventoryRoutes');
+const serviceRoutes = require('./routes/serviceRoutes');
+const productCustomizationRoutes = require('./routes/productCustomizationRoutes');
+
+const app = express();
+const PORT = process.env.PORT || 5000; 
+
+// Middlewares
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.use(passport.initialize());
+
+app.get('/api/health', (req, res) => {
+  const healthcheck = {
+    uptime: process.uptime(),
+    message: 'OK',
+    timestamp: Date.now(),
+    database: sequelize.authenticate()
+      .then(() => 'Connected')
+      .catch(() => 'Error')
+  };
+  
+  Promise.resolve(healthcheck.database)
+    .then(dbStatus => {
+      healthcheck.database = dbStatus;
+      res.status(200).json(healthcheck);
+    })
+    .catch(error => {
+      healthcheck.message = error;
+      res.status(503).json(healthcheck);
+    });
+});
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/banners', bannerRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/about-us', aboutUsRoutes);
+app.use('/api/footer', footerRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/shipping-prices', shipping_prices);
+app.use('/api/addresses', addressRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/services', serviceRoutes);
+app.use('/api/product-customizations', productCustomizationRoutes);
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    message: 'Error interno del servidor',
+    error: process.env.NODE_ENV === 'production' ? {} : err
+  });
+});
+
+// Database connection and server start
+const startServer = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('Database connection has been established successfully.');
+    
+    // Sync models with database - set force to true to drop tables in development
+    await sequelize.sync({ force: process.env.NODE_ENV === 'development' && process.env.DB_FORCE_SYNC === 'true' });
+    console.log('Database synchronized');
+    
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+      console.log(`API URL: http://localhost:${PORT}/api/health`);
+    });
+  } catch (error) {
+    console.error('Unable to connect to the database:', error);
+  }
+};
+
+startServer();
