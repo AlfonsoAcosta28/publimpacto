@@ -19,6 +19,8 @@ const addressRoutes = require('./routes/addressRoutes')
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
+const serviceInventoryRoutes = require('./routes/serviceInventoryRoutes');
+const serviceOrderRoutes = require('./routes/serviceOrderRoutes');
 const productCustomizationRoutes = require('./routes/productCustomizationRoutes');
 
 const app = express();
@@ -72,6 +74,8 @@ app.use('/api/addresses', addressRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/services', serviceRoutes);
+app.use('/api/service-inventory', serviceInventoryRoutes);
+app.use('/api/service-orders', serviceOrderRoutes);
 app.use('/api/product-customizations', productCustomizationRoutes);
 
 // Error handler

@@ -11,15 +11,18 @@ interface User {
 
 interface AuthStore {
   user: User | null;
+  token: string | null;
   loading: boolean;
   initialized: boolean;
   login: (credentials: { correo: string; password: string }) => Promise<User | null>;
   logout: () => void;
   checkAuth: () => Promise<User | null>;
+  getToken: () => string | null;
 }
 
-export const useAuth = create<AuthStore>((set) => ({
+export const useAuth = create<AuthStore>((set, get) => ({
   user: null,
+  token: null,
   loading: false,
   initialized: false,
 
@@ -36,10 +39,11 @@ export const useAuth = create<AuthStore>((set) => ({
       if (response && response.user) {
         // Asegurarse de que el usuario tenga los datos necesarios
         const user = response.user;
+        const token = response.token;
         // console.log('Login successful, user:', user);
         
         // Guardar en el estado de Zustand
-        set({ user, loading: false });
+        set({ user, token, loading: false });
         return user;
       }
       
@@ -47,7 +51,7 @@ export const useAuth = create<AuthStore>((set) => ({
       return null;
     } catch (error) {
       console.error('Error in login function:', error);
-      set({ user: null, loading: false });
+      set({ user: null, token: null, loading: false });
       return null;
     }
   },
@@ -55,7 +59,7 @@ export const useAuth = create<AuthStore>((set) => ({
   logout: () => {
     try {
       authService.logout();
-      set({ user: null });
+      set({ user: null, token: null });
     } catch (error) {
       console.error('Error logging out:', error);
     }
@@ -66,11 +70,26 @@ export const useAuth = create<AuthStore>((set) => ({
     
     try {
       const user = await authService.getCurrentUser();
-      set({ user, initialized: true, loading: false });
+      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1] || null;
+      set({ user, token, initialized: true, loading: false });
       return user;
     } catch (error) {
-      set({ user: null, initialized: true, loading: false });
+      set({ user: null, token: null, initialized: true, loading: false });
       return null;
     }
+  },
+
+  getToken: () => {
+    const { token } = get();
+    if (token) return token;
+    
+    // Si no hay token en el estado, intentar obtenerlo de las cookies
+    const cookieToken = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+    if (cookieToken) {
+      set({ token: cookieToken });
+      return cookieToken;
+    }
+    
+    return null;
   }
 }));

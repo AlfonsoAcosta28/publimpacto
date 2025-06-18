@@ -11,7 +11,9 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/services')
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname)
+    // Asegurar que la ruta se guarde con forward slashes
+    const filename = Date.now() + '-' + file.originalname;
+    cb(null, filename)
   }
 });
 
@@ -28,14 +30,31 @@ const upload = multer({
   }
 });
 
+// Configuración específica para servicios con múltiples campos de archivos
+const serviceUpload = multer({ 
+  storage: storage,
+  fileFilter: function (req, file, cb) {
+    // Aceptar solo imágenes para servicios
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos de imagen'));
+    }
+  }
+}).fields([
+  { name: 'mainImage', maxCount: 1 },
+  { name: 'secondaryImages', maxCount: 4 }
+]);
+
 // Rutas públicas
 router.get('/', serviceController.getAllServices);
 router.get('/:id', serviceController.getServiceById);
 
-
-router.post('/', authenticateAdmin,serviceController.createService);
-router.put('/:id',authenticateAdmin, serviceController.updateService);
-router.delete('/:id',authenticateAdmin, serviceController.deleteService);
+// Rutas protegidas con autenticación y manejo de archivos
+router.post('/', authenticateAdmin, serviceUpload, serviceController.createService);
+router.put('/:id', authenticateAdmin, serviceUpload, serviceController.updateService);
+router.delete('/:id', authenticateAdmin, serviceController.deleteService);
 
 // Rutas para documentos
 router.post('/:id/documents', upload.single('document'), serviceController.uploadServiceDocument);

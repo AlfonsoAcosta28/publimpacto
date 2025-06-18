@@ -49,6 +49,7 @@ export default function DashboardLayout({
     { path: '/dashboard', label: 'Dashboard', icon: ChartArea },
     { path: '/products', label: 'Productos', icon: Package },
     { path: '/services', label: 'Servicios', icon: GrServices },
+    { path: '/service-orders', label: 'Órdenes de Servicios', icon: ShoppingBag },
     { path: '/categories', label: 'Categorías', icon: MdCategory },
     { path: '/inventory', label:'Inventario', icon: PackageOpen },
     { path: '/orders', label: 'Pedidos', icon: ShoppingBag },

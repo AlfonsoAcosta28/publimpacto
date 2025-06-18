@@ -6,6 +6,7 @@ import {
   Search,
   MoreHorizontal,
   Percent,
+  Package,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -37,161 +38,334 @@ import Swal from 'sweetalert2';
 import { ProductImageDisplay } from "@/components/ProductImageDisplay";
 import { Product, Category } from '@/interfaces/Product';
 import productService from "@/services/productService"
+import servicesService from "@/services/servicesService"
+import { Service, ServiceOption, ServiceInventory } from "@/interfaces/Service"
+import serviceInventoryService from "@/services/serviceInventoryService"
+
+
+// Plantillas predefinidas de servicios
+const SERVICE_TEMPLATES: { [key: string]: ServiceOption[] } = {
+  'DTF': [
+    { name: 'ancho', input_type: 'text', options: ['58'] },
+    { name: 'largo', input_type: 'text' },
+    { name: 'archivo', input_type: 'file' }
+  ],
+  'Bordado': [
+    { name: 'ancho', input_type: 'text' },
+    { name: 'largo', input_type: 'text' },
+    { name: 'archivo', input_type: 'file' }
+  ],
+  'Lona': [
+    { name: 'ancho', input_type: 'text' },
+    { name: 'largo', input_type: 'text' },
+    { name: 'archivo', input_type: 'file' }
+  ],
+  'Impresión de vinil': [
+    { name: 'ancho', input_type: 'text' },
+    { name: 'largo', input_type: 'text' },
+    { name: 'archivo', input_type: 'file' }
+  ],
+  'Corte de vinil': [
+    { name: 'ancho', input_type: 'text' },
+    { name: 'largo', input_type: 'text' },
+    { name: 'archivo', input_type: 'file' }
+  ],
+  'Grabado láser': [
+    { name: 'ancho', input_type: 'text' },
+    { name: 'largo', input_type: 'text' },
+    { name: 'archivo', input_type: 'file' },
+    { name: 'producto', input_type: 'text' }
+  ],
+  'Perifoneo': [
+    { name: 'dias', input_type: 'select', options: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] },
+    { name: 'horario', input_type: 'time' },
+    { name: 'archivo', input_type: 'file' }
+  ],
+  'Tazas personalizadas': [
+    { name: 'archivo', input_type: 'file' },
+    { name: 'cantidad', input_type: 'number' },
+    { name: 'tipo_taza', input_type: 'select', options: ['normal', 'mágica'] }
+  ],
+  'Camisas personalizadas': [
+    { name: 'archivo', input_type: 'file' },
+    { name: 'color', input_type: 'select', options: ['Blanco', 'Negro', 'Azul', 'Rojo', 'Verde', 'Amarillo', 'Gris', 'Rosa', 'Naranja', 'Morado'] },
+    { name: 'talla', input_type: 'select', options: ['S', 'M', 'L', 'XL', 'XXL'] },
+    { name: 'cantidad', input_type: 'number' }
+  ]
+};
 
 export default function ServicesPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
+  const [currentService, setCurrentService] = useState<Service | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | File[] | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDiscountOpen, setIsDiscountOpen] = useState(false);
-  const [selectedProductForDiscount, setSelectedProductForDiscount] = useState<Product | null>(null);
+  const [selectedServiceForDiscount, setSelectedServiceForDiscount] = useState<Service | null>(null);
+  const [selectedServiceType, setSelectedServiceType] = useState<string>('');
+  const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([]);
+  
+  // Estados para inventario
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
+  const [selectedServiceForInventory, setSelectedServiceForInventory] = useState<Service | null>(null);
+  const [serviceInventory, setServiceInventory] = useState<ServiceInventory[]>([]);
+  const [isAddingInventory, setIsAddingInventory] = useState(false);
 
-  // Fetch products and categories on mount
+  const handleServiceTypeChange = (serviceType: string) => {
+    setSelectedServiceType(serviceType);
+    setServiceOptions(SERVICE_TEMPLATES[serviceType] || []);
+  };
+
+  // Inicializar opciones cuando se está editando un servicio
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [productsData] = await Promise.all([
-          productService.getAllProducts(),
-        ]);
+    if (currentService) {
+      setSelectedServiceType(currentService.name);
+      setServiceOptions(SERVICE_TEMPLATES[currentService.name] || []);
+    } else {
+      setSelectedServiceType('');
+      setServiceOptions([]);
+    }
+  }, [currentService]);
 
-        console.log('Productos recibidos:', productsData);
-        setProducts(productsData);
-        // console.log(productsData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
+  // Función para abrir el modal de inventario
+  const handleOpenInventory = async (service: Service) => {
+    try {
+      setSelectedServiceForInventory(service);
+      setIsInventoryOpen(true);
+      
+      // Cargar el inventario del servicio
+      const inventory = await serviceInventoryService.getServiceInventory(service.id!);
+      setServiceInventory(inventory);
+    } catch (error) {
+      console.error('Error al cargar inventario:', error);
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo cargar el inventario",
+        icon: "error",
+        timer: 1500
+      });
+    }
+  };
+
+  // Función para agregar item al inventario
+  const handleAddInventoryItem = async (formData: FormData) => {
+    try {
+      if (!selectedServiceForInventory) return;
+
+      const item = {
+        variant_name: formData.get('variant_name') as string,
+        quantity: parseInt(formData.get('quantity') as string),
+        price_modifier: parseFloat(formData.get('price_modifier') as string) || 0
+      };
+
+      await serviceInventoryService.addInventoryItem(selectedServiceForInventory.id!, item);
+      
+      // Recargar inventario
+      const inventory = await serviceInventoryService.getServiceInventory(selectedServiceForInventory.id!);
+      setServiceInventory(inventory);
+
+      Swal.fire({
+        title: "Éxito",
+        text: "Item agregado al inventario",
+        icon: "success",
+        timer: 1500
+      });
+    } catch (error) {
+      console.error('Error al agregar item:', error);
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo agregar el item",
+        icon: "error",
+        timer: 1500
+      });
+    }
+  };
+
+  // Función para eliminar item del inventario
+  const handleDeleteInventoryItem = async (itemId: number) => {
+    try {
+      const result = await Swal.fire({
+        title: "¿Estás seguro?",
+        text: "No podrás revertir esta acción",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar"
+      });
+
+      if (result.isConfirmed) {
+        await serviceInventoryService.deleteInventoryItem(itemId);
+        
+        // Recargar inventario
+        if (selectedServiceForInventory) {
+          const inventory = await serviceInventoryService.getServiceInventory(selectedServiceForInventory.id!);
+          setServiceInventory(inventory);
+        }
+
         Swal.fire({
-          title: "Error",
-          text: "No se pudieron cargar los productos",
-          icon: "error",
-          timer: 1500,
+          title: "Eliminado",
+          text: "Item eliminado correctamente",
+          icon: "success",
+          timer: 1500
         });
       }
+    } catch (error) {
+      console.error('Error al eliminar item:', error);
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo eliminar el item",
+        icon: "error",
+        timer: 1500
+      });
+    }
+  };
+
+  // Cargar servicios al montar el componente
+  useEffect(() => {
+    const fetchServices = async () => {
       try {
-        const [categoriesData] = await Promise.all([
-          categoryService.getAllCategories()
-        ])
-        setCategories(categoriesData);
+        console.log('Cargando servicios al montar componente...');
+        const servicesData = await servicesService.getAllServices();
+        console.log('Servicios cargados:', servicesData);
+        setServices(servicesData);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error al cargar servicios:', error);
+        
+        let errorMessage = "No se pudieron cargar los servicios";
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (typeof error === 'object' && error !== null && 'message' in error) {
+          errorMessage = (error as any).message;
+        }
+        
         Swal.fire({
           title: "Error",
-          text: "No se pudieron cargar las categorias",
+          text: errorMessage,
           icon: "error",
-          timer: 1500,
+          timer: 3000,
         });
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchServices();
   }, []);
 
-  const handleCreateProduct = async (formData: FormData) => {
+  const handleCreateService = async (formData: FormData) => {
     try {
-      const productData = {
-        title: formData.get('title') as string,
+      console.log('Iniciando creación de servicio...');
+      
+      const serviceName = formData.get('name') as string;
+      const serviceData: Service = {
+        name: serviceName,
         description: formData.get('description') as string,
         base_price: parseFloat(formData.get('base_price') as string),
-        category_id: parseInt(formData.get('category') as string),
-        badge: formData.get('badge') as string
+        options: SERVICE_TEMPLATES[serviceName] || []
       };
 
-      const image = formData.get('mainImage') as File;
+      const mainImage = formData.get('mainImage') as File;
       const secondaryImages = formData.getAll('secondaryImages') as File[];
 
-      if (!image || image.size === 0) {
+      if (!mainImage || mainImage.size === 0) {
         Swal.fire({
           title: "Error",
-          text: "Por favor selecciona una imagen",
+          text: "Por favor selecciona una imagen principal",
           icon: "error",
           timer: 1500
         });
         return;
       }
 
-      // Wait for the product to be created
-      await productService.createProduct(productData, image, secondaryImages);
+      console.log('Llamando a createService...');
+      const createdService = await servicesService.createService(serviceData, mainImage, secondaryImages);
+      console.log('Servicio creado:', createdService);
 
-      // Only if the creation was successful:
-      const updatedProducts = await productService.getAllProducts();
-      setProducts(updatedProducts);
-      setIsOpen(false); // Close modal
+      console.log('Actualizando lista de servicios...');
+      const updatedServices = await servicesService.getAllServices();
+      console.log('Servicios actualizados:', updatedServices);
+      
+      setServices(updatedServices);
+      setIsOpen(false);
 
       Swal.fire({
         title: "Éxito",
-        text: "Producto creado correctamente",
+        text: "Servicio creado correctamente",
         icon: "success",
         timer: 1500
       });
     } catch (error) {
-      console.error('Error creating product:', error);
+      console.error('Error completo al crear servicio:', error);
+      
+      // Mostrar error más específico
+      let errorMessage = "No se pudo crear el servicio";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null && 'message' in error) {
+        errorMessage = (error as any).message;
+      }
+      
       Swal.fire({
         title: "Error",
-        text: "No se pudo crear el producto",
+        text: errorMessage,
         icon: "error",
-        timer: 1500
+        timer: 3000
       });
-      // Don't close modal on error so user can correct the input
     }
   };
 
-  const handleEditProduct = async (formData: FormData) => {
+  const handleEditService = async (formData: FormData) => {
     try {
-      if (!currentProduct) return;
+      if (!currentService) return;
 
-      const productData = {
-        title: formData.get('title') as string,
+      const serviceName = formData.get('name') as string;
+      const serviceData: Service = {
+        name: serviceName,
         description: formData.get('description') as string,
         base_price: parseFloat(formData.get('base_price') as string),
-        category_id: parseInt(formData.get('category') as string),
-        badge: formData.get('badge') as string
+        options: SERVICE_TEMPLATES[serviceName] || []
       };
 
       const mainImage = formData.get('mainImage') as File;
       const secondaryImages = formData.getAll('secondaryImages') as File[];
 
-      // Solo enviar imágenes si se seleccionaron nuevas
       const hasMainImage = mainImage && mainImage.size > 0;
-      const hasSecondaryImages = secondaryImages && secondaryImages.length > 0 &&
+      const hasSecondaryImages = secondaryImages && secondaryImages.length > 0 && 
         secondaryImages.some(img => img.size > 0);
 
-      await productService.updateProduct(
-        currentProduct.id,
-        productData,
-        hasMainImage ? mainImage : null,
-        hasSecondaryImages ? secondaryImages : []
+      await servicesService.updateService(
+        currentService.id!,
+        serviceData,
+        hasMainImage ? mainImage : undefined,
+        hasSecondaryImages ? secondaryImages : undefined
       );
 
-      // Refresh products list
-      const updatedProducts = await productService.getAllProducts();
-      setProducts(updatedProducts);
-
+      const updatedServices = await servicesService.getAllServices();
+      setServices(updatedServices);
       setIsOpen(false);
-      setCurrentProduct(null);
+      setCurrentService(null);
+
       Swal.fire({
         title: "Éxito",
-        text: "Producto actualizado correctamente",
+        text: "Servicio actualizado correctamente",
         icon: "success",
         timer: 1500
       });
     } catch (error) {
-      console.error('Error updating product:', error);
-      // Mostrar el mensaje de error específico del servidor si existe
+      console.error('Error al actualizar servicio:', error);
       Swal.fire({
         title: "Error",
-        text: "No se pudo actualizar el producto",
+        text: "No se pudo actualizar el servicio",
         icon: "error",
         timer: 1500
       });
     }
   };
 
-  const handleDeleteProduct = async (id: number) => {
-    // Show confirmation dialog before deleting
+  const handleDeleteService = async (id: number) => {
     const result = await Swal.fire({
       title: "¿Estás seguro?",
       text: "No podrás revertir esta acción",
@@ -205,22 +379,19 @@ export default function ServicesPage() {
 
     if (result.isConfirmed) {
       try {
-        await productService.deleteProduct(id);
-
-        // Remove product from state
-        setProducts(products.filter(product => product.id !== id));
-
+        await servicesService.deleteService(id);
+        setServices(services.filter(service => service.id !== id));
         Swal.fire({
           title: "Eliminado",
-          text: "Producto eliminado correctamente",
+          text: "Servicio eliminado correctamente",
           icon: "success",
           timer: 1500
         });
       } catch (error) {
-        console.error('Error deleting product:', error);
+        console.error('Error al eliminar servicio:', error);
         Swal.fire({
           title: "Error",
-          text: "No se pudo eliminar el producto",
+          text: "No se pudo eliminar el servicio",
           icon: "error",
           timer: 1500
         });
@@ -230,22 +401,21 @@ export default function ServicesPage() {
 
   const handleApplyDiscount = async (formData: FormData) => {
     try {
-      if (!selectedProductForDiscount) return;
+      if (!selectedServiceForDiscount) return;
 
       const discountType = formData.get('discountType') as 'percentage' | 'price';
       const value = parseFloat(formData.get('value') as string);
 
-      await productService.applyDiscount(
-        selectedProductForDiscount.id,
+      await servicesService.applyDiscount(
+        selectedServiceForDiscount.id!,
         discountType,
         value
       );
 
-      // Actualizar la lista de productos
-      const updatedProducts = await productService.getAllProducts();
-      setProducts(updatedProducts);
+      const updatedServices = await servicesService.getAllServices();
+      setServices(updatedServices);
       setIsDiscountOpen(false);
-      setSelectedProductForDiscount(null);
+      setSelectedServiceForDiscount(null);
 
       Swal.fire({
         title: "Éxito",
@@ -254,7 +424,7 @@ export default function ServicesPage() {
         timer: 1500
       });
     } catch (error) {
-      console.error('Error applying discount:', error);
+      console.error('Error al aplicar descuento:', error);
       Swal.fire({
         title: "Error",
         text: "No se pudo aplicar el descuento",
@@ -266,12 +436,9 @@ export default function ServicesPage() {
 
   const handleRemoveDiscount = async (id: number) => {
     try {
-      await productService.removeDiscount(id);
-
-      // Actualizar la lista de productos
-      const updatedProducts = await productService.getAllProducts();
-      setProducts(updatedProducts);
-
+      await servicesService.removeDiscount(id);
+      const updatedServices = await servicesService.getAllServices();
+      setServices(updatedServices);
       Swal.fire({
         title: "Éxito",
         text: "Descuento eliminado correctamente",
@@ -279,7 +446,7 @@ export default function ServicesPage() {
         timer: 1500
       });
     } catch (error) {
-      console.error('Error removing discount:', error);
+      console.error('Error al eliminar descuento:', error);
       Swal.fire({
         title: "Error",
         text: "No se pudo eliminar el descuento",
@@ -300,16 +467,16 @@ export default function ServicesPage() {
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">Gestión de Productos</h2>
-
+        <h2 className="text-xl font-semibold">Gestión de Servicios</h2>
       </div>
+
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
           <Button className="mb-6" onClick={() => {
-            setCurrentProduct(null);
+            setCurrentService(null);
             setIsOpen(true);
           }}>
-            Crear Nuevo Producto
+            Crear Nuevo Servicio
           </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
@@ -318,13 +485,13 @@ export default function ServicesPage() {
             setIsSubmitting(true);
             try {
               const formData = new FormData(e.currentTarget);
-              if (currentProduct) {
-                await handleEditProduct(formData);
+              if (currentService) {
+                await handleEditService(formData);
               } else {
-                await handleCreateProduct(formData);
+                await handleCreateService(formData);
               }
             } catch (error) {
-              console.error('Form submission error:', error);
+              console.error('Error en el formulario:', error);
               Swal.fire({
                 title: "Error",
                 text: "Hubo un error al procesar el formulario",
@@ -336,59 +503,82 @@ export default function ServicesPage() {
             }
           }}>
             <DialogHeader className="top-0 bg-white z-10 pb-4 border-b">
-              <DialogTitle>{currentProduct ? 'Editar Producto' : 'Crear Nuevo Producto'}</DialogTitle>
+              <DialogTitle>{currentService ? 'Editar Servicio' : 'Crear Nuevo Servicio'}</DialogTitle>
               <DialogDescription>
-                {currentProduct ? 'Modifica los detalles del producto.' : 'Completa los detalles para añadir un nuevo producto.'}
+                {currentService ? 'Modifica los detalles del servicio.' : 'Completa los detalles para añadir un nuevo servicio.'}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="title" className="text-right">Nombre</Label>
-                <Input
-                  id="title"
-                  name="title"
-                  defaultValue={currentProduct?.title || ''}
-                  placeholder="Nombre del producto"
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="base_price" className="text-right">Precio</Label>
-                <Input
-                  id="base_price"
-                  name="base_price"
-                  type="number"
-                  step="0.01"
-                  defaultValue={currentProduct?.base_price || ''}
-                  placeholder="Precio de venta"
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="category" className="text-right">Categoría</Label>
-                <Select name="category" defaultValue={currentProduct?.category_id?.toString()}>
+                <Label htmlFor="name" className="text-right">Nombre</Label>
+                <Select 
+                  name="name" 
+                  defaultValue={currentService?.name}
+                  onValueChange={handleServiceTypeChange}
+                >
                   <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecciona una categoría" />
+                    <SelectValue placeholder="Selecciona un tipo de servicio" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.title}
+                    {Object.keys(SERVICE_TEMPLATES).map((serviceName) => (
+                      <SelectItem key={serviceName} value={serviceName}>
+                        {serviceName}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Mostrar opciones del servicio seleccionado */}
+              {serviceOptions.length > 0 && (
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label className="text-right">Opciones del Servicio</Label>
+                  <div className="col-span-3">
+                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                      <h4 className="font-medium mb-3 text-blue-800">Campos requeridos para "{selectedServiceType}":</h4>
+                      <div className="space-y-3">
+                        {serviceOptions.map((option, index) => (
+                          <div key={index} className="flex items-center gap-3 text-sm bg-white p-2 rounded border">
+                            <Badge variant="secondary" className="text-xs">
+                              {option.input_type === 'text' && 'Texto'}
+                              {option.input_type === 'number' && 'Número'}
+                              {option.input_type === 'select' && 'Selección'}
+                              {option.input_type === 'file' && 'Archivo'}
+                              {option.input_type === 'time' && 'Hora'}
+                            </Badge>
+                            <span className="font-medium text-gray-800">{option.name}</span>
+                            {option.options && option.input_type === 'select' && (
+                              <span className="text-gray-600 text-xs">
+                                Opciones: {option.options.join(', ')}
+                              </span>
+                            )}
+                            {option.options && option.input_type === 'text' && (
+                              <span className="text-gray-600 text-xs">
+                                Valor sugerido: {option.options[0]}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-blue-600 mt-3">
+                        💡 Estos campos se mostrarán al cliente cuando solicite este servicio
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="badge" className="text-right">Etiqueta</Label>
+                <Label htmlFor="base_price" className="text-right">Precio Base</Label>
                 <Input
-                  id="badge"
-                  name="badge"
-                  defaultValue={currentProduct?.badge || ''}
-                  placeholder="Ej: Nuevo, Oferta, etc."
+                  id="base_price"
+                  name="base_price"
+                  type="number"
+                  step="0.01"
+                  defaultValue={currentService?.base_price || ''}
+                  placeholder="Precio base del servicio"
                   className="col-span-3"
+                  required
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -396,23 +586,23 @@ export default function ServicesPage() {
                 <textarea
                   id="description"
                   name="description"
-                  defaultValue={currentProduct?.description || ''}
-                  placeholder="Descripción del producto"
+                  defaultValue={currentService?.description || ''}
+                  placeholder="Descripción del servicio"
                   className="col-span-3 min-h-[100px] w-full border rounded-md p-2"
                   required
                 />
               </div>
-              {currentProduct && currentProduct.ProductImages && (
+              {currentService && currentService.images && (
                 <div className="grid grid-cols-4 items-start gap-4">
                   <Label className="text-right">Imágenes Actuales</Label>
                   <div className="col-span-3">
-                    <ProductImageDisplay images={currentProduct.ProductImages} />
+                    <ProductImageDisplay images={currentService.images} />
                   </div>
                 </div>
               )}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="mainImage" className="text-right">
-                  {currentProduct ? 'Cambiar Imagen Principal' : 'Imagen Principal'}
+                  {currentService ? 'Cambiar Imagen Principal' : 'Imagen Principal'}
                 </Label>
                 <Input
                   id="mainImage"
@@ -420,13 +610,12 @@ export default function ServicesPage() {
                   type="file"
                   className="col-span-3"
                   onChange={(e) => setSelectedImage(e.target.files?.[0] || null)}
-                  required={!currentProduct}
+                  required={!currentService}
                 />
               </div>
-
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="secondaryImages" className="text-right">
-                  {currentProduct ? 'Agregar Imágenes Secundarias' : 'Imágenes Secundarias'}
+                  {currentService ? 'Cambiar Imágenes Secundarias' : 'Imágenes Secundarias'}
                 </Label>
                 <Input
                   id="secondaryImages"
@@ -436,15 +625,14 @@ export default function ServicesPage() {
                   className="col-span-3"
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
-                    // Puedes agregar validación de cantidad máxima aquí
                     if (files.length > 4) {
                       Swal.fire({
                         title: "Error",
-                        text: "Solo se permiten hasta 5 imágenes secundarias",
+                        text: "Solo se permiten hasta 4 imágenes secundarias",
                         icon: "error",
                         timer: 1500
                       });
-                      e.target.value = ''; // Limpiar el input
+                      e.target.value = '';
                     } else {
                       setSelectedImage(files);
                     }
@@ -460,7 +648,7 @@ export default function ServicesPage() {
                     Procesando...
                   </span>
                 ) : (
-                  `${currentProduct ? 'Actualizar' : 'Guardar'} Producto`
+                  `${currentService ? 'Actualizar' : 'Guardar'} Servicio`
                 )}
               </Button>
             </DialogFooter>
@@ -470,7 +658,7 @@ export default function ServicesPage() {
 
       <Card className="mb-6">
         <CardHeader className="p-4 pb-0">
-          <CardTitle className="text-base font-medium">Lista de Productos</CardTitle>
+          <CardTitle className="text-base font-medium">Lista de Servicios</CardTitle>
         </CardHeader>
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row justify-between mb-4 gap-4">
@@ -478,23 +666,10 @@ export default function ServicesPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar producto por nombre"
+                placeholder="Buscar servicio por nombre"
                 className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full md:w-[400px] text-sm"
               />
             </div>
-            <Select>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filtrar por categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las categorías</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id.toString()}>
-                    {category.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="overflow-x-auto">
@@ -504,23 +679,21 @@ export default function ServicesPage() {
                   <TableHead>ID</TableHead>
                   <TableHead>Imagen</TableHead>
                   <TableHead>Nombre</TableHead>
-                  <TableHead>Precio</TableHead>
+                  <TableHead>Precio Base</TableHead>
                   <TableHead>Descuento</TableHead>
                   <TableHead>Precio Final</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Etiqueta</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">#{product.id}</TableCell>
+                {services.map((service) => (
+                  <TableRow key={service.id}>
+                    <TableCell className="font-medium">#{service.id}</TableCell>
                     <TableCell>
                       <div className="h-10 w-10 rounded overflow-hidden">
                         <Image
-                          src={product.image || '/placeholder.svg'}
-                          alt={product.title}
+                          src={service.images?.find(img => img.is_primary)?.image_url || '/placeholder.svg'}
+                          alt={service.name}
                           width={40}
                           height={40}
                           className="object-cover"
@@ -530,30 +703,26 @@ export default function ServicesPage() {
                         />
                       </div>
                     </TableCell>
-                    <TableCell>{product.title}</TableCell>
-                    <TableCell>${product.base_price}</TableCell>
+                    <TableCell>{service.name}</TableCell>
+                    <TableCell>${service.base_price}</TableCell>
                     <TableCell>
-                      {product.discount_percentage && product.discount_percentage > 0 ? (
+                      {service.discount_percentage && service.discount_percentage > 0 ? (
                         <Badge variant="destructive" className="flex items-center gap-1">
                           <Percent className="h-3 w-3" />
-                          {Number(product.discount_percentage).toFixed(0)}%
+                          {Number(service.discount_percentage).toFixed(0)}%
                         </Badge>
                       ) : (
                         "-"
                       )}
                     </TableCell>
                     <TableCell>
-                      {product.personalization_price && product.personalization_price > 0 ? (
-                        <span className="font-medium">${Number(product.personalization_price).toFixed(2)}</span>
+                      {service.discount_percentage ? (
+                        <span className="font-medium">
+                          ${(service.base_price * (1 - service.discount_percentage / 100)).toFixed(2)}
+                        </span>
                       ) : (
                         "-"
                       )}
-                    </TableCell>
-                    <TableCell>
-                      {categories.find((c) => c.id === product.category_id)?.title || "Sin categoría"}
-                    </TableCell>
-                    <TableCell>
-                      {product.badge && <Badge variant="secondary">{product.badge}</Badge>}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -564,36 +733,39 @@ export default function ServicesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => {
-                            setCurrentProduct(product);
+                            setCurrentService(service);
                             setIsOpen(true);
                           }}>
                             Editar
                           </DropdownMenuItem>
-                          {product.discount_percentage ? (
+                          <DropdownMenuItem onClick={() => handleOpenInventory(service)}>
+                            <Package className="h-4 w-4 mr-2" />
+                            Gestionar Inventario
+                          </DropdownMenuItem>
+                          {Number(service.discount_percentage) > 0 ? (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-red-600"
-                                onClick={() => handleRemoveDiscount(product.id)}>
+                                onClick={() => handleRemoveDiscount(service.id!)}
+                              >
                                 Eliminar Descuento
                               </DropdownMenuItem>
                             </>
                           ) : (
                             <>
                               <DropdownMenuItem onClick={() => {
-                                setSelectedProductForDiscount(product);
+                                setSelectedServiceForDiscount(service);
                                 setIsDiscountOpen(true);
                               }}>
                                 Agregar Descuento
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                             </>
-
                           )}
-
                           <DropdownMenuItem
                             className="text-red-600"
-                            onClick={() => handleDeleteProduct(product.id)}
+                            onClick={() => handleDeleteService(service.id!)}
                           >
                             Eliminar
                           </DropdownMenuItem>
@@ -619,7 +791,7 @@ export default function ServicesPage() {
             <DialogHeader>
               <DialogTitle>Aplicar Descuento</DialogTitle>
               <DialogDescription>
-                Aplica un descuento al producto {selectedProductForDiscount?.title}
+                Aplica un descuento al servicio {selectedServiceForDiscount?.name}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -655,6 +827,133 @@ export default function ServicesPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Diálogo de Inventario */}
+      <Dialog open={isInventoryOpen} onOpenChange={setIsInventoryOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Gestionar Inventario - {selectedServiceForInventory?.name}</DialogTitle>
+            <DialogDescription>
+              Agrega y gestiona el inventario disponible para este servicio
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Formulario para agregar item */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-3">Agregar Nuevo Item</h4>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setIsAddingInventory(true);
+                try {
+                  const formData = new FormData(e.currentTarget);
+                  await handleAddInventoryItem(formData);
+                  (e.target as HTMLFormElement).reset();
+                } finally {
+                  setIsAddingInventory(false);
+                }
+              }}>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="variant_name">Variante</Label>
+                    <Input
+                      id="variant_name"
+                      name="variant_name"
+                      placeholder="ej: Camisa Blanca S, Taza Normal"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="quantity">Cantidad</Label>
+                    <Input
+                      id="quantity"
+                      name="quantity"
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="price_modifier">Precio Adicional</Label>
+                    <Input
+                      id="price_modifier"
+                      name="price_modifier"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+                <Button type="submit" className="mt-3" disabled={isAddingInventory}>
+                  {isAddingInventory ? 'Agregando...' : 'Agregar Item'}
+                </Button>
+              </form>
+            </div>
+
+            {/* Tabla de inventario */}
+            <div>
+              <h4 className="font-medium mb-3">Inventario Actual</h4>
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Variante</TableHead>
+                      <TableHead>Cantidad</TableHead>
+                      <TableHead>Precio Adicional</TableHead>
+                      <TableHead>Precio Total</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {serviceInventory.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                          No hay items en el inventario
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      serviceInventory.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.variant_name}</TableCell>
+                          <TableCell>
+                            <Badge variant={item.quantity > 0 ? "default" : "destructive"}>
+                              {item.quantity}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {item.price_modifier && item.price_modifier > 0 ? (
+                              <span className="text-green-600">+${item.price_modifier}</span>
+                            ) : item.price_modifier && item.price_modifier < 0 ? (
+                              <span className="text-red-600">${item.price_modifier}</span>
+                            ) : (
+                              <span className="text-gray-500">$0.00</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              ${(Number(selectedServiceForInventory?.base_price) || 0) + (Number(item.price_modifier) || 0)}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteInventoryItem(item.id!)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              Eliminar
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
-  )
+  );
 }
