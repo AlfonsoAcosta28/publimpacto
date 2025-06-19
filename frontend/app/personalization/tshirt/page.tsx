@@ -8,6 +8,7 @@ import { Model } from "@/components/camisa/model"
 import Controls from "@/components/camisa/containers/Controls"
 import { Irgb } from "@/components/camisa/types/Irgb"
 import camisaService from "@/services/camisasServices"
+import { FaTshirt } from "react-icons/fa";
 
 // Tipos para el diseño de la camisa
 interface CamisaDesign {
@@ -297,6 +298,8 @@ export default function ProductPersonalizationPage() {
         setSelectedTalla("");
         setSelectedColor(null);
         setCantidad(1);
+        const nombre = document.getElementById("nombre_producto")
+        nombre?.focus()
     };
 
     // Eliminar item de la selección
@@ -590,7 +593,7 @@ export default function ProductPersonalizationPage() {
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Seleccionar Camisa
                                         </label>
-                                        <select
+                                        {/* <select
                                             value={selectedCamisa?.id || ""}
                                             onChange={(e) => {
                                                 const camisa = camisas.find(c => c.id === parseInt(e.target.value));
@@ -606,7 +609,28 @@ export default function ProductPersonalizationPage() {
                                                     {camisa.descripcion}
                                                 </option>
                                             ))}
-                                        </select>
+                                        </select> */}
+
+
+                                        <div className="flex flex-wrap gap-4">
+                                            {camisas.map((camisa) => (
+                                                <button
+                                                    key={camisa.id}
+                                                    onClick={() => {
+                                                        setSelectedCamisa(camisa);
+                                                        setSelectedTalla("");
+                                                        setSelectedColor(null);
+                                                    }}
+                                                    className={`w-32 h-32 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 ${selectedCamisa?.id === camisa.id
+                                                            ? "bg-blue-200 border-blue-700"
+                                                            : "bg-white text-gray-700 hover:bg-gray-100"
+                                                        }`}
+                                                >
+                                                    <FaTshirt size={32} className="text-blue-600" />
+                                                    <span className="mt-2 text-sm text-center">{camisa.descripcion}</span>
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
 
                                     {selectedCamisa && (
@@ -897,6 +921,7 @@ export default function ProductPersonalizationPage() {
                                             Nombre del Producto
                                         </label>
                                         <input
+                                        id="nombre_producto"
                                             type="text"
                                             value={nombre}
                                             onChange={(e) => setNombre(e.target.value)}
