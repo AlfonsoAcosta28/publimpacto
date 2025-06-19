@@ -23,8 +23,10 @@ import {
 
 import { GrServices } from "react-icons/gr";
 import { MdCategory } from "react-icons/md";
+import { FaTshirt } from "react-icons/fa";
+
+
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +51,7 @@ export default function DashboardLayout({
     { path: '/dashboard', label: 'Dashboard', icon: ChartArea },
     { path: '/products', label: 'Productos', icon: Package },
     { path: '/services', label: 'Servicios', icon: GrServices },
+    { path: '/custom_tshirt', label: 'Camisas', icon: FaTshirt },
     { path: '/service-orders', label: 'Órdenes de Servicios', icon: ShoppingBag },
     { path: '/categories', label: 'Categorías', icon: MdCategory },
     { path: '/inventory', label:'Inventario', icon: PackageOpen },
@@ -133,7 +136,7 @@ export default function DashboardLayout({
           </div>
         )}
         <div className="p-6 border-b border-gray-200">
-          <h1 className="text-2xl font-semibold text-purple-600">Administracion - OOPS DULCERIA</h1>
+          <h1 className="text-2xl font-semibold text-purple-600">Administracion PUBLIMPACTO</h1>
         </div>
         <div className="flex-1 py-4 overflow-y-auto">
           <nav className="space-y-1 px-2">

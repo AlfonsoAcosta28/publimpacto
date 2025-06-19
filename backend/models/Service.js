@@ -19,16 +19,6 @@ const Service = sequelize.define('Service', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false
   },
-  discount_percentage: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: true,
-    defaultValue: 0
-  },
-  personalization_price: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    defaultValue: 0
-  },
   deleted_at: {
     type: DataTypes.DATE,
     allowNull: true

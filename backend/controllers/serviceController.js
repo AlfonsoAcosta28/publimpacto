@@ -1,17 +1,18 @@
 const Service = require('../models/Service');
 const ServiceImage = require('../models/ServiceImage');
-const ServiceOption = require('../models/ServiceOption');
-const ServiceOptionValue = require('../models/ServiceOptionValue');
+// const ServiceOption = require('../models/ServiceOption');
+// const ServiceOptionValue = require('../models/ServiceOptionValue');
 const { Op } = require('sequelize');
 
-// Obtener todos los servicios
+// Obtener todos los servicios (catálogo público)
 exports.getAllServices = async (req, res) => {
   try {
-    console.log('Obteniendo todos los servicios...');
+    console.log('Obteniendo catálogo de servicios...');
     
     const services = await Service.findAll({
       where: {
-        deleted_at: null
+        deleted_at: null,
+        activo: true
       },
       include: [
         {
@@ -31,7 +32,6 @@ exports.getAllServices = async (req, res) => {
     });
     
     console.log(`Servicios encontrados: ${services.length}`);
-    console.log('Servicios:', services.map(s => ({ id: s.id, name: s.name })));
     
     // Agregar URL base a las imágenes
     const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -51,17 +51,18 @@ exports.getAllServices = async (req, res) => {
     res.json(servicesWithUrls);
   } catch (error) {
     console.error('Error al obtener servicios:', error);
-    res.status(500).json({ message: 'Error al obtener los servicios', error: error.message });
+    res.status(500).json({ message: 'Error al obtener el catálogo de servicios', error: error.message });
   }
 };
 
-// Obtener un servicio por ID
+// Obtener un servicio por ID (para mostrar detalles)
 exports.getServiceById = async (req, res) => {
   try {
     const service = await Service.findOne({
       where: {
         id: req.params.id,
-        deleted_at: null
+        deleted_at: null,
+        activo: true
       },
       include: [
         {
@@ -101,7 +102,7 @@ exports.getServiceById = async (req, res) => {
   }
 };
 
-// Crear un nuevo servicio
+// Crear un nuevo servicio (solo admin)
 exports.createService = async (req, res) => {
   try {
     console.log('Datos recibidos:', req.body);
@@ -144,7 +145,7 @@ exports.createService = async (req, res) => {
       name: name.trim(),
       description: description.trim(),
       base_price: parseFloat(base_price),
-      discount_percentage: 0
+      activo: true
     });
 
     console.log('Servicio creado:', service.id);
@@ -201,10 +202,10 @@ exports.createService = async (req, res) => {
   }
 };
 
-// Actualizar un servicio
+// Actualizar un servicio (solo admin)
 exports.updateService = async (req, res) => {
   try {
-    const { name, description, base_price, discount_percentage, options } = req.body;
+    const { name, description, base_price, activo, options } = req.body;
     
     const service = await Service.findOne({
       where: {
@@ -222,7 +223,7 @@ exports.updateService = async (req, res) => {
       name,
       description,
       base_price,
-      discount_percentage: discount_percentage || service.discount_percentage
+      activo: activo !== undefined ? activo : service.activo
     });
 
     // Actualizar opciones si se proporcionan
@@ -296,7 +297,7 @@ exports.updateService = async (req, res) => {
   }
 };
 
-// Eliminar un servicio (soft delete)
+// Eliminar un servicio (soft delete - solo admin)
 exports.deleteService = async (req, res) => {
   try {
     const service = await Service.findOne({
@@ -317,13 +318,9 @@ exports.deleteService = async (req, res) => {
   }
 };
 
-// Subir documento para un servicio
-exports.uploadServiceDocument = async (req, res) => {
+// Activar/Desactivar un servicio (solo admin)
+exports.toggleServiceStatus = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'No se ha proporcionado ningún archivo' });
-    }
-
     const service = await Service.findOne({
       where: {
         id: req.params.id,
@@ -335,37 +332,12 @@ exports.uploadServiceDocument = async (req, res) => {
       return res.status(404).json({ message: 'Servicio no encontrado' });
     }
 
-    const document = await ServiceDocument.create({
-      service_id: service.id,
-      file_path: req.file.path,
-      file_name: req.file.originalname,
-      file_type: req.file.mimetype
+    await service.update({ activo: !service.activo });
+    res.json({ 
+      message: `Servicio ${service.activo ? 'activado' : 'desactivado'} correctamente`,
+      activo: service.activo 
     });
-
-    res.status(201).json(document);
   } catch (error) {
-    res.status(500).json({ message: 'Error al subir el documento', error: error.message });
-  }
-};
-
-// Eliminar documento de un servicio
-exports.deleteServiceDocument = async (req, res) => {
-  try {
-    const document = await ServiceDocument.findOne({
-      where: {
-        id: req.params.documentId,
-        service_id: req.params.id,
-        deleted_at: null
-      }
-    });
-
-    if (!document) {
-      return res.status(404).json({ message: 'Documento no encontrado' });
-    }
-
-    await document.update({ deleted_at: new Date() });
-    res.json({ message: 'Documento eliminado correctamente' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error al eliminar el documento', error: error.message });
+    res.status(500).json({ message: 'Error al cambiar el estado del servicio', error: error.message });
   }
 }; 

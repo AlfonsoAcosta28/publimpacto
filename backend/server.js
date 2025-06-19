@@ -19,9 +19,16 @@ const addressRoutes = require('./routes/addressRoutes')
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
-const serviceInventoryRoutes = require('./routes/serviceInventoryRoutes');
 const serviceOrderRoutes = require('./routes/serviceOrderRoutes');
 const productCustomizationRoutes = require('./routes/productCustomizationRoutes');
+const camisaRoutes = require('./routes/camisaRoutes');
+const colorRoutes = require('./routes/colorRoutes');
+const tallaRoutes = require('./routes/tallaRoutes');
+const precioCamisaRangoRoutes = require('./routes/precioCamisaRangoRoutes');
+const ordenCamisaRoutes = require('./routes/ordenCamisaRoutes');
+const ordenItemCamisaRoutes = require('./routes/ordenItemCamisaRoutes');
+const personalizacionImagenRoutes = require('./routes/personalizacionImagenRoutes');
+const inventarioCamisaRoutes = require('./routes/inventarioCamisaRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000; 
@@ -74,9 +81,16 @@ app.use('/api/addresses', addressRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/services', serviceRoutes);
-app.use('/api/service-inventory', serviceInventoryRoutes);
 app.use('/api/service-orders', serviceOrderRoutes);
 app.use('/api/product-customizations', productCustomizationRoutes);
+app.use('/api/camisas', camisaRoutes);
+app.use('/api/colores', colorRoutes);
+app.use('/api/tallas', tallaRoutes);
+app.use('/api/precios-camisa', precioCamisaRangoRoutes);
+app.use('/api/ordenes-camisa', ordenCamisaRoutes);
+app.use('/api/ordenes-item-camisa', ordenItemCamisaRoutes);
+app.use('/api/personalizaciones-imagen', personalizacionImagenRoutes);
+app.use('/api/inventario-camisa', inventarioCamisaRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {

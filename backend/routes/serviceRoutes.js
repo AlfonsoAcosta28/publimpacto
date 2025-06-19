@@ -47,17 +47,14 @@ const serviceUpload = multer({
   { name: 'secondaryImages', maxCount: 4 }
 ]);
 
-// Rutas públicas
+// Rutas públicas (catálogo)
 router.get('/', serviceController.getAllServices);
 router.get('/:id', serviceController.getServiceById);
 
-// Rutas protegidas con autenticación y manejo de archivos
+// Rutas protegidas (solo admin)
 router.post('/', authenticateAdmin, serviceUpload, serviceController.createService);
 router.put('/:id', authenticateAdmin, serviceUpload, serviceController.updateService);
 router.delete('/:id', authenticateAdmin, serviceController.deleteService);
-
-// Rutas para documentos
-router.post('/:id/documents', upload.single('document'), serviceController.uploadServiceDocument);
-router.delete('/:id/documents/:documentId', serviceController.deleteServiceDocument);
+router.put('/:id/toggle-status', authenticateAdmin, serviceController.toggleServiceStatus);
 
 module.exports = router;
