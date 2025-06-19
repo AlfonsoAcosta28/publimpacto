@@ -143,8 +143,10 @@ export default function CatalogPage() {
           <>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {products.map((product) => (
-                <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                  <CardContent className="p-0 relative">
+                <Link href={`/catalog/${product.id}`} className="hover:cursor-pointer">
+
+                  <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                    <CardContent className="p-0 relative">
                       {product.badge && (
                         <Badge
                           variant="secondary"
@@ -153,51 +155,52 @@ export default function CatalogPage() {
                           {product.badge}
                         </Badge>
                       )}
-                    <div className="aspect-square overflow-hidden rounded-t-lg">
-                      <Image
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.title}
-                        width={300}
-                        height={300}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <div className="p-4">
-                      <Badge variant="secondary" className="mb-2 capitalize">
-                        {categories.find(cat => String(cat.id) === String(product.category_id))?.title || 'Sin categoría'}
-                      </Badge>
-                      <h3 className="font-semibold text-lg mb-2 line-clamp-2">{product.title}</h3>
-                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col">
-                          {product.personalization_price > 0 ? (
-                            <>
-                              <span className="text-sm text-gray-500 line-through">${product.base_price}</span>
-                              <span className="text-2xl font-bold text-blue-600">
-                                ${Number(product.personalization_price) }
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-2xl font-bold text-blue-600">${product.base_price}</span>
-                          )}
-                          {product.personalization_price > 0 && (
-                            <span className="text-xs text-gray-500">
-                              {Number(product.discount_percentage)}% de descuento
-                            </span>
-                          )}
-                        </div>
-                        <Button
-                          onClick={() => addToCart(product)}
-                          size="sm"
-                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                        >
-                          <ShoppingBag className="w-4 h-4 mr-1" />
-                          Agregar
-                        </Button>
+                      <div className="aspect-square overflow-hidden rounded-t-lg">
+                        <Image
+                          src={product.image || "/placeholder.svg"}
+                          alt={product.title}
+                          width={300}
+                          height={300}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                      <div className="p-4">
+                        <Badge variant="secondary" className="mb-2 capitalize">
+                          {categories.find(cat => String(cat.id) === String(product.category_id))?.title || 'Sin categoría'}
+                        </Badge>
+                        <h3 className="font-semibold text-lg mb-2 line-clamp-2">{product.title}</h3>
+                        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            {product.personalization_price > 0 ? (
+                              <>
+                                <span className="text-sm text-gray-500 line-through">${product.base_price}</span>
+                                <span className="text-2xl font-bold text-blue-600">
+                                  ${Number(product.personalization_price)}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-2xl font-bold text-blue-600">${product.base_price}</span>
+                            )}
+                            {product.personalization_price > 0 && (
+                              <span className="text-xs text-gray-500">
+                                {Number(product.discount_percentage)}% de descuento
+                              </span>
+                            )}
+                          </div>
+                          <Button
+                            onClick={() => addToCart(product)}
+                            size="sm"
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                          >
+                            <ShoppingBag className="w-4 h-4 mr-1" />
+                            Agregar
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
 
