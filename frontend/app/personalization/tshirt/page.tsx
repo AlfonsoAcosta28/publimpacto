@@ -694,6 +694,7 @@ export default function ProductPersonalizationPage() {
                                                         </div>
                                                     );
                                                 })}
+                                                
                                                 <div className="border-t pt-2 mt-2">
                                                     <div className="flex justify-between">
                                                         <span className="text-gray-800 font-semibold">Total:</span>
