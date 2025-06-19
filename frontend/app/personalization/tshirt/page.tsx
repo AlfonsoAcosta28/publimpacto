@@ -109,7 +109,7 @@ export default function ProductPersonalizationPage() {
     const [traseroX, setTraseroX] = useState(0);
     const [traseroY, setTraseroY] = useState(0.05);
 
-    const precioPersonalizacion = 5.99;
+    // const precioPersonalizacion = 5.99;
 
     const tref = useRef(null);
 
@@ -193,6 +193,35 @@ export default function ProductPersonalizationPage() {
             });
     };
 
+    // Obtener el precio base (rango 1-1) para una camisa
+    const getPrecioBase = (camisaId: number) => {
+        const rangosCamisa = rangosPrecios.filter(r => r.id_camisa === camisaId);
+        const precioBase = rangosCamisa.find(r => r.min_cantidad === 1 && r.max_cantidad === 1);
+        return precioBase ? precioBase.precio_unitario : null;
+    };
+
+    // Obtener todos los rangos de precios para una camisa
+    const getRangosPreciosCamisa = (camisaId: number) => {
+        return rangosPrecios
+            .filter(r => r.id_camisa === camisaId)
+            .sort((a, b) => a.min_cantidad - b.min_cantidad);
+    };
+
+    // Obtener el precio más bajo para una camisa
+    const getPrecioMasBajo = (camisaId: number) => {
+        const rangosCamisa = rangosPrecios.filter(r => r.id_camisa === camisaId);
+        if (rangosCamisa.length === 0) return null;
+
+        const precioMasBajo = Math.min(...rangosCamisa.map(r => r.precio_unitario));
+        const rangoMasBajo = rangosCamisa.find(r => r.precio_unitario === precioMasBajo);
+
+        return rangoMasBajo ? {
+            precio: rangoMasBajo.precio_unitario,
+            min: rangoMasBajo.min_cantidad,
+            max: rangoMasBajo.max_cantidad
+        } : null;
+    };
+
     // Calcular precio basado en la cantidad y rangos de precios
     const calcularPrecio = (camisaId: number, cantidad: number) => {
         const rangosCamisa = rangosPrecios.filter(r => r.id_camisa === camisaId);
@@ -232,34 +261,36 @@ export default function ProductPersonalizationPage() {
         } : null;
     };
 
-    // Obtener el precio más bajo para una camisa
-    const getPrecioMasBajo = (camisaId: number) => {
-        const rangosCamisa = rangosPrecios.filter(r => r.id_camisa === camisaId);
-        if (rangosCamisa.length === 0) return null;
-
-        const precioMasBajo = Math.min(...rangosCamisa.map(r => r.precio_unitario));
-        const rangoMasBajo = rangosCamisa.find(r => r.precio_unitario === precioMasBajo);
-
-        return rangoMasBajo ? {
-            precio: rangoMasBajo.precio_unitario,
-            min: rangoMasBajo.min_cantidad,
-            max: rangoMasBajo.max_cantidad
-        } : null;
-    };
-
     // Agregar item a la selección
     const agregarItem = () => {
         if (!selectedCamisa || !selectedTalla || !selectedColor || cantidad <= 0) return;
 
-        const nuevoItem: ItemSeleccionado = {
-            id: `${selectedCamisa.id}-${selectedTalla}-${selectedColor.id}-${Date.now()}`,
-            camisa: selectedCamisa,
-            talla: selectedTalla,
-            color: selectedColor,
-            cantidad: cantidad
-        };
+        // Buscar si ya existe un item con la misma camisa, talla y color
+        const itemExistente = itemsSeleccionados.find(item =>
+            item.camisa.id === selectedCamisa.id &&
+            item.talla === selectedTalla &&
+            item.color.id === selectedColor.id
+        );
 
-        setItemsSeleccionados([...itemsSeleccionados, nuevoItem]);
+        if (itemExistente) {
+            // Si existe, actualizar la cantidad
+            setItemsSeleccionados(itemsSeleccionados.map(item =>
+                item.id === itemExistente.id
+                    ? { ...item, cantidad: item.cantidad + cantidad }
+                    : item
+            ));
+        } else {
+            // Si no existe, crear nuevo item
+            const nuevoItem: ItemSeleccionado = {
+                id: `${selectedCamisa.id}-${selectedTalla}-${selectedColor.id}-${Date.now()}`,
+                camisa: selectedCamisa,
+                talla: selectedTalla,
+                color: selectedColor,
+                cantidad: cantidad
+            };
+
+            setItemsSeleccionados([...itemsSeleccionados, nuevoItem]);
+        }
 
         // Resetear selección
         setSelectedCamisa(null);
@@ -273,13 +304,77 @@ export default function ProductPersonalizationPage() {
         setItemsSeleccionados(itemsSeleccionados.filter(item => item.id !== itemId));
     };
 
+    // Obtener información del descuento aplicado por camisa
+    const getDescuentoAplicado = (camisaId: number) => {
+        const itemsAgrupados = getItemsAgrupadosPorCamisa();
+        const itemsCamisa = itemsAgrupados[camisaId];
+
+        if (!itemsCamisa) return null;
+
+        const cantidadTotal = itemsCamisa.reduce((sum, item) => sum + item.cantidad, 0);
+        const rangoInfo = getRangoPrecioInfo(camisaId, cantidadTotal);
+        const precioBase = getPrecioBase(camisaId);
+
+        if (!rangoInfo || !precioBase) return null;
+
+        const descuento = ((precioBase - rangoInfo.precio) / precioBase) * 100;
+
+        return {
+            cantidadTotal,
+            precioUnitario: rangoInfo.precio,
+            precioOriginal: precioBase,
+            descuento: descuento,
+            rango: rangoInfo
+        };
+    };
+
+    // Obtener items agrupados por camisa para cálculo de precios
+    const getItemsAgrupadosPorCamisa = () => {
+        const agrupados: { [camisaId: number]: ItemSeleccionado[] } = {};
+
+        itemsSeleccionados.forEach(item => {
+            if (!agrupados[item.camisa.id]) {
+                agrupados[item.camisa.id] = [];
+            }
+            agrupados[item.camisa.id].push(item);
+        });
+
+        return agrupados;
+    };
+
     // Calcular precio total de todos los items
     const calcularPrecioTotal = () => {
-        return itemsSeleccionados.reduce((total, item) => {
-            const precioBase = calcularPrecio(item.camisa.id, item.cantidad);
-            const precioPersonalizacionTotal = precioPersonalizacion * item.cantidad;
-            return total + precioBase + precioPersonalizacionTotal;
-        }, 0);
+        const itemsAgrupados = getItemsAgrupadosPorCamisa();
+        let total = 0;
+
+        Object.values(itemsAgrupados).forEach(itemsCamisa => {
+            // Sumar todas las cantidades de esta camisa
+            const cantidadTotal = itemsCamisa.reduce((sum, item) => sum + item.cantidad, 0);
+
+            // Calcular precio basado en la cantidad total de la camisa
+            const precioBase = calcularPrecio(itemsCamisa[0].camisa.id, cantidadTotal);
+            total += precioBase;
+        });
+
+        return total;
+    };
+
+    // Calcular precio para un item específico (considerando agrupación por camisa)
+    const calcularPrecioItem = (item: ItemSeleccionado) => {
+        const itemsAgrupados = getItemsAgrupadosPorCamisa();
+        const itemsCamisa = itemsAgrupados[item.camisa.id];
+
+        if (!itemsCamisa) return 0;
+
+        // Sumar todas las cantidades de esta camisa
+        const cantidadTotal = itemsCamisa.reduce((sum, i) => sum + i.cantidad, 0);
+
+        // Calcular precio total de la camisa
+        const precioTotalCamisa = calcularPrecio(item.camisa.id, cantidadTotal);
+
+        // Distribuir el precio proporcionalmente según la cantidad de este item
+        const proporcion = item.cantidad / cantidadTotal;
+        return precioTotalCamisa * proporcion;
     };
 
     const handleFileChange = async (file: File | null, parte: 'frontal' | 'trasero' | 'mangaDerecha' | 'mangaIzquierda') => {
@@ -487,215 +582,304 @@ export default function ProductPersonalizationPage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            {/* Vista previa del diseño */}
+                            {/* Izquierda: Formulario para agregar camisas */}
                             <div className="bg-white rounded-lg shadow-lg p-6">
-                                <h3 className="text-xl font-semibold mb-4">Vista Previa del Diseño</h3>
-                                <div className="h-96 bg-gray-100 rounded-lg flex items-center justify-center">
-                                    <Model
-                                        isMobile={isMobile}
-                                        color={color}
-                                        logoF={logoF}
-                                        logoT={logoT}
-                                        logoMD={logoMD}
-                                        logoMI={logoMI}
-                                        isLogo={isLogo}
-                                        frontalScale={frontalScale}
-                                        frontalX={frontalX}
-                                        frontalY={frontalY}
-                                        traseroScale={traseroScale}
-                                        traseroX={traseroX}
-                                        traseroY={traseroY}
-                                    />
-                                </div>
-                            </div>
+                                <h3 className="text-xl font-semibold mb-6">Agregar Camisa</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Seleccionar Camisa
+                                        </label>
+                                        <select
+                                            value={selectedCamisa?.id || ""}
+                                            onChange={(e) => {
+                                                const camisa = camisas.find(c => c.id === parseInt(e.target.value));
+                                                setSelectedCamisa(camisa || null);
+                                                setSelectedTalla("");
+                                                setSelectedColor(null);
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value="">Selecciona una camisa</option>
+                                            {camisas.map((camisa) => (
+                                                <option key={camisa.id} value={camisa.id}>
+                                                    {camisa.descripcion}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
 
-                            {/* Formulario de selección */}
-                            <div className="bg-white rounded-lg shadow-lg p-6">
-                                <h3 className="text-xl font-semibold mb-6">Detalles del Pedido</h3>
-
-                                <div className="space-y-6">
-                                   
-
-                                    {/* Items seleccionados */}
-                                    {itemsSeleccionados.length > 0 && (
-                                        <div className="border rounded-lg p-4">
-                                            <h4 className="font-semibold mb-3">Camisas Seleccionadas:</h4>
-                                            <div className="space-y-2">
-                                                {itemsSeleccionados.map((item) => (
-                                                    <div key={item.id} className="flex items-center justify-between bg-gray-50 p-3 rounded">
-                                                        <div className="flex items-center gap-3">
-                                                            <div
-                                                                className="w-4 h-4 rounded-full border border-gray-300"
-                                                                style={{ backgroundColor: item.color.rgb }}
-                                                            ></div>
-                                                            <span className="text-sm">
-                                                                {item.camisa.descripcion} - {item.talla} - {item.color.nombre_color} (x{item.cantidad})
+                                    {selectedCamisa && (
+                                        <>
+                                            {/* Tabla de precios */}
+                                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                                <h5 className="font-semibold text-blue-800 mb-3">Tabla de Precios por Cantidad</h5>
+                                                <div className="space-y-2">
+                                                    {getRangosPreciosCamisa(selectedCamisa.id).map((rango, index) => (
+                                                        <div key={rango.id} className="flex justify-between items-center text-sm">
+                                                            <span className="text-gray-700">
+                                                                {rango.min_cantidad === rango.max_cantidad
+                                                                    ? `${rango.min_cantidad} camisa`
+                                                                    : `${rango.min_cantidad} - ${rango.max_cantidad} camisas`
+                                                                }
+                                                            </span>
+                                                            <span className="font-medium text-blue-600">
+                                                                ${Number(rango.precio_unitario).toFixed(0)}/unidad
                                                             </span>
                                                         </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Talla
+                                                </label>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {tallasDisponibles.map((t) => (
                                                         <button
-                                                            onClick={() => eliminarItem(item.id)}
-                                                            className="text-red-500 hover:text-red-700"
+                                                            key={t}
+                                                            onClick={() => {
+                                                                if (t) {
+                                                                    setSelectedTalla(t);
+                                                                    setSelectedColor(null);
+                                                                }
+                                                            }}
+                                                            className={`p-3 border rounded-md hover:bg-gray-50 transition-colors ${selectedTalla === t ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300'
+                                                                }`}
                                                         >
-                                                            <X className="w-4 h-4" />
+                                                            {t}
                                                         </button>
-                                                    </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {selectedTalla && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Color
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {coloresDisponibles.map((color) => (
+                                                    <button
+                                                        key={color?.id}
+                                                        onClick={() => setSelectedColor(color || null)}
+                                                        className={`flex items-center gap-2 p-2 border rounded-md hover:bg-gray-50 ${selectedColor?.id === color?.id ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                                                            }`}
+                                                    >
+                                                        <div
+                                                            className="w-6 h-6 rounded-full border border-gray-300"
+                                                            style={{ backgroundColor: color?.rgb }}
+                                                        ></div>
+                                                        <span className="text-sm">{color?.nombre_color}</span>
+                                                    </button>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* Formulario para agregar nuevo item */}
-                                    <div className="border-t pt-4">
-                                        <h4 className="font-semibold mb-3">Agregar Camisa:</h4>
-
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    Seleccionar Camisa
-                                                </label>
-                                                <select
-                                                    value={selectedCamisa?.id || ""}
-                                                    onChange={(e) => {
-                                                        const camisa = camisas.find(c => c.id === parseInt(e.target.value));
-                                                        setSelectedCamisa(camisa || null);
-                                                        setSelectedTalla("");
-                                                        setSelectedColor(null);
-                                                    }}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                >
-                                                    <option value="">Selecciona una camisa</option>
-                                                    {camisas.map((camisa) => (
-                                                        <option key={camisa.id} value={camisa.id}>
-                                                            {camisa.descripcion}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                    {selectedColor && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Cantidad
+                                            </label>
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => setCantidad(Math.max(1, cantidad - 1))}
+                                                        className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-semibold"
+                                                    >
+                                                        -
+                                                    </button>
+                                                    <span className="w-12 text-center font-semibold">{cantidad}</span>
+                                                    <button
+                                                        onClick={() => {
+                                                            const stockDisponible = getStockDisponible(selectedCamisa!.id, selectedTalla, selectedColor.id);
+                                                            setCantidad(Math.min(stockDisponible, cantidad + 1));
+                                                        }}
+                                                        disabled={cantidad >= getStockDisponible(selectedCamisa!.id, selectedTalla, selectedColor.id)}
+                                                        className="w-8 h-8 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-full flex items-center justify-center text-white font-semibold"
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                                <div className="text-sm text-gray-600">
+                                                    Stock disponible: <span className="font-semibold">{getStockDisponible(selectedCamisa!.id, selectedTalla, selectedColor.id)}</span>
+                                                </div>
                                             </div>
-
-                                            {selectedCamisa && (
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                        Talla
-                                                    </label>
-                                                    <div className="grid grid-cols-3 gap-2">
-                                                        {tallasDisponibles.map((t) => (
-                                                            <button
-                                                                key={t}
-                                                                onClick={() => {
-                                                                    if (t) {
-                                                                        setSelectedTalla(t);
-                                                                        setSelectedColor(null);
-                                                                    }
-                                                                }}
-                                                                className={`p-3 border rounded-md hover:bg-gray-50 transition-colors ${selectedTalla === t ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300'
-                                                                    }`}
-                                                            >
-                                                                {t}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {selectedTalla && (
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                        Color
-                                                    </label>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        {coloresDisponibles.map((color) => (
-                                                            <button
-                                                                key={color?.id}
-                                                                onClick={() => setSelectedColor(color || null)}
-                                                                className={`flex items-center gap-2 p-2 border rounded-md hover:bg-gray-50 ${selectedColor?.id === color?.id ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-                                                                    }`}
-                                                            >
-                                                                <div
-                                                                    className="w-6 h-6 rounded-full border border-gray-300"
-                                                                    style={{ backgroundColor: color?.rgb }}
-                                                                ></div>
-                                                                <span className="text-sm">{color?.nombre_color}</span>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {selectedColor && (
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                        Cantidad
-                                                    </label>
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => setCantidad(Math.max(1, cantidad - 1))}
-                                                                className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-semibold"
-                                                            >
-                                                                -
-                                                            </button>
-                                                            <span className="w-12 text-center font-semibold">{cantidad}</span>
-                                                            <button
-                                                                onClick={() => {
-                                                                    const stockDisponible = getStockDisponible(selectedCamisa!.id, selectedTalla, selectedColor.id);
-                                                                    setCantidad(Math.min(stockDisponible, cantidad + 1));
-                                                                }}
-                                                                disabled={cantidad >= getStockDisponible(selectedCamisa!.id, selectedTalla, selectedColor.id)}
-                                                                className="w-8 h-8 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-full flex items-center justify-center text-white font-semibold"
-                                                            >
-                                                                +
-                                                            </button>
-                                                        </div>
-                                                        <div className="text-sm text-gray-600">
-                                                            Stock disponible: <span className="font-semibold">{getStockDisponible(selectedCamisa!.id, selectedTalla, selectedColor.id)}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {precioMasBajo && (
-                                                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                                                    <p className="text-sm text-green-800">
-                                                        <strong>¡Promoción!</strong> En la compra de {precioMasBajo.min} camisa{precioMasBajo.min > 1 ? 's' : ''} el precio es de ${precioMasBajo.precio.toFixed(2)} por unidad
-                                                    </p>
-                                                </div>
-                                            )}
-
-                                            <button
-                                                onClick={agregarItem}
-                                                disabled={!selectedCamisa || !selectedTalla || !selectedColor || cantidad <= 0}
-                                                className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                            >
-                                                <Plus className="w-4 h-4" />
-                                                Agregar a la Selección
-                                            </button>
                                         </div>
-                                    </div>
+                                    )}
+
+
+
+                                    <button
+                                        onClick={agregarItem}
+                                        disabled={!selectedCamisa || !selectedTalla || !selectedColor || cantidad <= 0}
+                                        className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        Agregar a la Selección
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Derecha: Detalles del pedido y resumen */}
+                            <div className="bg-white rounded-lg shadow-lg p-6">
+                                <h3 className="text-xl font-semibold mb-6">Detalles del Pedido</h3>
+                                <div className="space-y-6">
+                                    {/* Items seleccionados */}
+                                    {itemsSeleccionados.length > 0 && (
+                                        <div className="border rounded-lg p-4">
+                                            <h4 className="font-semibold mb-3">Camisas Seleccionadas:</h4>
+                                            <div className="space-y-3">
+                                                {Object.keys(getItemsAgrupadosPorCamisa()).map((camisaId) => {
+                                                    const camisaIdNum = parseInt(camisaId);
+                                                    const itemsCamisa = getItemsAgrupadosPorCamisa()[camisaIdNum];
+                                                    const descuentoInfo = getDescuentoAplicado(camisaIdNum);
+
+                                                    if (!itemsCamisa) return null;
+
+                                                    return (
+                                                        <div key={camisaId} className="bg-gray-50 p-3 rounded border">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <span className="font-semibold text-gray-800">
+                                                                    {itemsCamisa[0].camisa.descripcion}
+                                                                </span>
+                                                                {descuentoInfo && descuentoInfo.descuento > 0 && (
+                                                                    <span className="text-green-600 text-sm font-medium">
+                                                                        ¡{descuentoInfo.descuento.toFixed(0)}% descuento!
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="space-y-1">
+                                                                {itemsCamisa.map((item) => (
+                                                                    <div key={item.id} className="flex items-center justify-between text-sm pl-4">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div
+                                                                                className="w-3 h-3 rounded-full border border-gray-300"
+                                                                                style={{ backgroundColor: item.color.rgb }}
+                                                                            ></div>
+                                                                            <span className="text-gray-600">
+                                                                                {item.talla} - {item.color.nombre_color} (x{item.cantidad})
+                                                                            </span>
+                                                                        </div>
+                                                                        <button
+                                                                            onClick={() => eliminarItem(item.id)}
+                                                                            className="text-red-500 hover:text-red-700 ml-2"
+                                                                        >
+                                                                            <X className="w-3 h-3" />
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                            {/* {descuentoInfo && (
+                                                                <div className="mt-2 pt-2 border-t border-gray-200">
+                                                                    <div className="text-xs text-gray-600">
+                                                                        Total: {descuentoInfo.cantidadTotal} camisas •
+                                                                        {descuentoInfo.descuento > 0 ? (
+                                                                            <>
+                                                                                <span className="text-green-600 font-medium">
+                                                                                    ¡A partir de {descuentoInfo.rango.min} camisa{descuentoInfo.rango.min > 1 ? 's' : ''} el precio es ${Number(descuentoInfo.precioUnitario).toFixed(0)}/unidad!
+                                                                                </span>
+                                                                                <div className="mt-1">
+                                                                                    <span className="text-gray-400 line-through">
+                                                                                        ${Number(descuentoInfo.precioOriginal).toFixed(2)}/unidad
+                                                                                    </span>
+                                                                                    <span className="ml-2 text-green-600 font-medium">
+                                                                                        ${Number(descuentoInfo.precioUnitario).toFixed(0)}/unidad
+                                                                                    </span>
+                                                                                </div>
+                                                                            </>
+                                                                        ) : (
+                                                                            <span>
+                                                                                Precio por unidad: ${Number(descuentoInfo.precioUnitario).toFixed(0)}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )} */}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Resumen de precios */}
                                     {itemsSeleccionados.length > 0 && (
                                         <div className="bg-gray-50 p-4 rounded-lg">
                                             <h4 className="text-lg font-semibold text-gray-800 mb-4">Resumen de Precios</h4>
-                                            <div className="space-y-2">
-                                                {itemsSeleccionados.map((item) => {
-                                                    const precioBase = calcularPrecio(item.camisa.id, item.cantidad);
-                                                    console.log(precioBase);
-                                                    console.log(precioPersonalizacion);
-                                                    const precioPersonalizacionTotal = precioPersonalizacion * item.cantidad;
-                                                    console.log(precioPersonalizacionTotal);
+                                            <div className="space-y-4">
+                                                {/* Mostrar descuentos por camisa */}
+                                                {Object.keys(getItemsAgrupadosPorCamisa()).map((camisaId) => {
+                                                    const camisaIdNum = parseInt(camisaId);
+                                                    const descuentoInfo = getDescuentoAplicado(camisaIdNum);
+                                                    const itemsCamisa = getItemsAgrupadosPorCamisa()[camisaIdNum];
+
+                                                    if (!descuentoInfo || !itemsCamisa) return null;
+
                                                     return (
-                                                        <div key={item.id} className="flex justify-between text-sm">
-                                                            <span className="text-gray-600">
-                                                                {item.camisa.descripcion} - {item.talla} - {item.color.nombre_color} (x{item.cantidad})
-                                                            </span>
-                                                            <span className="font-medium">
-                                                                ${(precioBase + precioPersonalizacionTotal).toFixed(2)}
-                                                            </span>
+                                                        <div key={camisaId} className="bg-white p-3 rounded-lg border border-green-200">
+                                                            <div className="flex justify-between items-center mb-2">
+                                                                <span className="font-semibold text-gray-800">
+                                                                    {itemsCamisa[0].camisa.descripcion}
+                                                                </span>
+                                                                {descuentoInfo.descuento > 0 && (
+                                                                    <span className="text-green-600 text-sm font-medium">
+                                                                        ¡{descuentoInfo.descuento.toFixed(0)}% descuento!
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="text-sm text-gray-600 mb-2">
+                                                                Cantidad total: {descuentoInfo.cantidadTotal} camisas
+                                                            </div>
+                                                            <div className="text-sm text-gray-600 mb-2">
+                                                                {descuentoInfo.descuento > 0 ? (
+                                                                    <>
+                                                                        <span className="text-green-600 font-medium">
+                                                                            ¡A partir de {descuentoInfo.rango.min} camisa{descuentoInfo.rango.min > 1 ? 's' : ''} el precio es ${Number(descuentoInfo.precioUnitario).toFixed(0)}/unidad!
+                                                                        </span>
+                                                                        <div className="mt-1">
+                                                                            <span className="text-gray-400 line-through">
+                                                                                ${Number(descuentoInfo.precioOriginal).toFixed(2)}/unidad
+                                                                            </span>
+                                                                            <span className="ml-2 text-green-600 font-medium">
+                                                                                ${Number(descuentoInfo.precioUnitario).toFixed(0)}/unidad
+                                                                            </span>
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
+                                                                    <span>
+                                                                        Precio por unidad: ${Number(descuentoInfo.precioUnitario).toFixed(0)}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Items individuales de esta camisa */}
+                                                            <div className="space-y-1 mt-2">
+                                                                {itemsCamisa.map((item) => {
+                                                                    const precioItem = calcularPrecioItem(item);
+                                                                    return (
+                                                                        <div key={item.id} className="flex justify-between text-sm pl-4">
+                                                                            <span className="text-gray-600">
+                                                                                • {item.talla} - {item.color.nombre_color} (x{item.cantidad})
+                                                                            </span>
+                                                                            <span className="font-medium">
+                                                                                ${precioItem.toFixed(2)}
+                                                                            </span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
                                                         </div>
                                                     );
                                                 })}
-                                                
-                                                <div className="border-t pt-2 mt-2">
+
+                                                <div className="border-t pt-4 mt-4">
                                                     <div className="flex justify-between">
                                                         <span className="text-gray-800 font-semibold">Total:</span>
                                                         <span className="text-blue-600 font-bold">
@@ -706,7 +890,9 @@ export default function ProductPersonalizationPage() {
                                             </div>
                                         </div>
                                     )}
-                                     <div>
+
+
+                                    <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Nombre del Producto
                                         </label>
@@ -734,7 +920,7 @@ export default function ProductPersonalizationPage() {
                         </button>
                         <button
                             onClick={handleNextPhase}
-                            disabled={itemsSeleccionados.length === 0}
+                            disabled={itemsSeleccionados.length === 0 || !nombre.trim()}
                             className="bg-blue-600 text-white py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >
                             Continuar al Pago
@@ -804,23 +990,75 @@ export default function ProductPersonalizationPage() {
                                 </div>
 
                                 <div className="border-t pt-4">
-                                    <div className="space-y-2 mb-4">
-                                        {itemsSeleccionados.map((item) => (
-                                            <div key={item.id} className="flex items-center justify-between text-sm">
-                                                <div className="flex items-center gap-2">
-                                                    <div
-                                                        className="w-4 h-4 rounded-full border border-gray-300"
-                                                        style={{ backgroundColor: item.color.rgb }}
-                                                    ></div>
-                                                    <span>
-                                                        {item.camisa.descripcion} - {item.talla} - {item.color.nombre_color} (x{item.cantidad})
-                                                    </span>
+                                    <div className="space-y-3 mb-4">
+                                        {Object.keys(getItemsAgrupadosPorCamisa()).map((camisaId) => {
+                                            const camisaIdNum = parseInt(camisaId);
+                                            const itemsCamisa = getItemsAgrupadosPorCamisa()[camisaIdNum];
+                                            const descuentoInfo = getDescuentoAplicado(camisaIdNum);
+
+                                            if (!itemsCamisa) return null;
+
+                                            return (
+                                                <div key={camisaId} className="bg-gray-50 p-3 rounded-lg">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="font-semibold text-gray-800">
+                                                            {itemsCamisa[0].camisa.descripcion}
+                                                        </span>
+                                                        {descuentoInfo && descuentoInfo.descuento > 0 && (
+                                                            <span className="text-green-600 text-sm font-medium">
+                                                                ¡{descuentoInfo.descuento.toFixed(0)}% descuento!
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="space-y-1">
+                                                        {itemsCamisa.map((item) => (
+                                                            <div key={item.id} className="flex items-center justify-between text-sm pl-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div
+                                                                        className="w-3 h-3 rounded-full border border-gray-300"
+                                                                        style={{ backgroundColor: item.color.rgb }}
+                                                                    ></div>
+                                                                    <span className="text-gray-600">
+                                                                        {item.talla} - {item.color.nombre_color} (x{item.cantidad})
+                                                                    </span>
+                                                                </div>
+                                                                <span className="font-medium">
+                                                                    ${calcularPrecioItem(item).toFixed(2)}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    {descuentoInfo && (
+                                                        <div className="mt-2 pt-2 border-t border-gray-200">
+                                                            <div className="text-xs text-gray-600">
+                                                                Total: {descuentoInfo.cantidadTotal} camisas •
+                                                                {descuentoInfo.descuento > 0 ? (
+                                                                    <>
+                                                                        <span className="text-green-600 font-medium">
+                                                                            ¡A partir de {descuentoInfo.rango.min} camisa{descuentoInfo.rango.min > 1 ? 's' : ''} el precio es ${Number(descuentoInfo.precioUnitario).toFixed(0)}/unidad!
+                                                                        </span>
+                                                                        <div className="mt-1">
+                                                                            <span className="text-gray-400 line-through">
+                                                                                ${Number(descuentoInfo.precioOriginal).toFixed(2)}/unidad
+                                                                            </span>
+                                                                            <span className="ml-2 text-green-600 font-medium">
+                                                                                ${Number(descuentoInfo.precioUnitario).toFixed(0)}/unidad
+                                                                            </span>
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
+                                                                    <span>
+                                                                        Precio por unidad: ${Number(descuentoInfo.precioUnitario).toFixed(0)}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <span>
-                                                    ${(calcularPrecio(item.camisa.id, item.cantidad) + (precioPersonalizacion * item.cantidad)).toFixed(2)}
-                                                </span>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
 
                                     <div className="border-t pt-4">

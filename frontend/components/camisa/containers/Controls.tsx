@@ -245,7 +245,7 @@ const Controls = ({
         <div className="h-full flex flex-col bg-white rounded-lg shadow-lg p-6 overflow-y-auto">
             <div className="space-y-8 w-full">
                 {/* Selector de Color */}
-                <div className="space-y-4">
+                {/* <div className="space-y-4">
                     <h3 className="text-xl font-semibold text-gray-800">Color de la Camisa</h3>
                     <div className="flex gap-3">
                         <button
@@ -269,7 +269,7 @@ const Controls = ({
                             className="w-10 h-10 rounded-full bg-black hover:ring-2 ring-offset-2 ring-black transition-all"
                         />
                     </div>
-                </div>
+                </div> */}
 
                 {/* Selector de Parte */}
                 <div className="space-y-4">
