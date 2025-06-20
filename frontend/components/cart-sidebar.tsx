@@ -28,6 +28,7 @@ export default function CartSidebar() {
     };
     fetchShipping();
   }, []);
+  
 
   const handleUpdateQuantity = (id: string, newQuantity: number, availableQuantity?: number) => {
     if (newQuantity === 0) {
