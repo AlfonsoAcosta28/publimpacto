@@ -5,6 +5,7 @@ const Product = require('../models/Product');
 const ProductImage = require('../models/ProductImage');
 const Address = require('../models/Address');
 const Inventory = require('../models/Inventory');
+const ShippingPrice = require('../models/ShippingPrice');
 const sequelize = require('../config/database');
 
 exports.getAllOrders = async (req, res) => {
@@ -242,12 +243,13 @@ exports.getUserOrders = async (req, res) => {
 };
 
 exports.createOrder = async (req, res) => {
+    console.log("body ")
     console.log(req.body)
     const transaction = await sequelize.transaction();
 
     try {
         const userId = req.user.id;
-        const { items, address_id, telefono_contacto, envio } = req.body;
+        const { items, address_id, telefono_contacto } = req.body;
 
         if (!items || !Array.isArray(items) || items.length === 0) {
             await transaction.rollback();
@@ -287,15 +289,39 @@ exports.createOrder = async (req, res) => {
         let subtotal = 0;
         for (const item of items) {
             const product = products.find(p => p.id === item.product_id);
-            subtotal += product.price * item.cantidad;
+            let productPrice = parseFloat(product.base_price);
+            
+            // Apply discount if exists
+            if (product.discount_percentage && product.discount_percentage > 0) {
+                const discount = productPrice * (parseFloat(product.discount_percentage) / 100);
+                productPrice = productPrice - discount;
+            }
+            
+            subtotal += productPrice * item.cantidad;
         }
+
+        // Calculate shipping
+        const shippingConfig = await ShippingPrice.findOne({ 
+            where: { activo: true },
+            order: [['created_at', 'DESC']],
+            transaction 
+        });
+        let shippingCost = 0;
+        if (shippingConfig) {
+            const freeShippingMin = parseFloat(shippingConfig.precioMinimoVenta);
+            if (subtotal < freeShippingMin) {
+                shippingCost = parseFloat(shippingConfig.valorEnvio);
+            }
+        }
+
+        const total = subtotal + shippingCost;
 
         // Create order
         const order = await Order.create({
             user_id: userId,
             address_id,
-            total: subtotal,
-            envio: envio || 0,
+            total: total,
+            envio: shippingCost,
             status: 'pendiente',
             telefono_contacto: telefono_contacto || address.telefono_contacto
         }, { transaction });
@@ -304,11 +330,19 @@ exports.createOrder = async (req, res) => {
         const orderItems = [];
         for (const item of items) {
             const product = products.find(p => p.id === item.product_id);
+            let productPrice = parseFloat(product.base_price);
+            
+            // Apply discount if exists
+            if (product.discount_percentage && product.discount_percentage > 0) {
+                const discount = productPrice * (parseFloat(product.discount_percentage) / 100);
+                productPrice = productPrice - discount;
+            }
+            
             const orderItem = await OrderItem.create({
                 order_id: order.id,
                 product_id: item.product_id,
                 cantidad: item.cantidad,
-                precio_unitario: product.price
+                precio_unitario: productPrice
             }, { transaction });
 
             orderItems.push(orderItem);
@@ -326,6 +360,7 @@ exports.createOrder = async (req, res) => {
     } catch (error) {
         await transaction.rollback();
         res.status(500).json({ message: 'Error al crear el pedido', error: error.message });
+        console.log(error)
     }
 };
 

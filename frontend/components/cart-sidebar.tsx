@@ -9,26 +9,13 @@ import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { ShoppingBag, Plus, Minus, Trash2 } from "lucide-react"
 import { useCart } from "@/contexts/cartContext"
-import shippingpriceService from "@/services/shippingpricesService"
+import { useShipping } from "@/contexts/ShippingContext"
 import { toast } from "sonner"
 
 export default function CartSidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const { cart, updateQuantity, removeFromCart } = useCart();
-
-  const [shippingPrice, setShippingPrice] = useState<number>(0);
-  const [minOrder, setMinOrder] = useState<number>(0);
-
-  useEffect(() => {
-    const fetchShipping = async () => {
-      const { valorEnvio, min_order } = await shippingpriceService.getCurrentPrice();
-      setShippingPrice(valorEnvio);
-      setMinOrder(min_order);
-      console.log("Se ejecuto");
-    };
-    fetchShipping();
-  }, []);
-  
+  const { shippingPrice, minOrderForFreeShipping, isLoading } = useShipping();
 
   const handleUpdateQuantity = (id: string, newQuantity: number, availableQuantity?: number) => {
     if (newQuantity === 0) {
@@ -45,7 +32,8 @@ export default function CartSidebar() {
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
-  const envioGratis = subtotal >= minOrder;
+  const isFreeShipping = subtotal >= minOrderForFreeShipping;
+  const total = subtotal + (isFreeShipping ? 0 : shippingPrice);
 
   return (
     <div className="">
@@ -154,7 +142,7 @@ export default function CartSidebar() {
                     <div className="flex justify-between mb-2">
                       <span className="text-sm">Envío:</span>
                       <div className="text-right text-sm">
-                        {envioGratis ? (
+                        {isFreeShipping ? (
                           <>
                             <span className="line-through text-gray-400 mr-2 ">
                               ${shippingPrice.toFixed(2)}
@@ -165,7 +153,7 @@ export default function CartSidebar() {
                           <>
                             ${shippingPrice.toFixed(2)}
                             <div className="text-xs text-green-600 mt-1">
-                              Envío gratis para compras arriba de ${minOrder}
+                              {`Envío gratis para compras arriba de $${minOrderForFreeShipping}`}
                             </div>
                           </>
                         )}
@@ -174,7 +162,7 @@ export default function CartSidebar() {
                     <Separator />
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>
-                      <span className="text-blue-600">${(subtotal + (subtotal > 50 ? 0 : 5.99)).toFixed(2)}</span>
+                      <span className="text-blue-600">${total.toFixed(2)}</span>
                     </div>
                   </div>
 
@@ -191,10 +179,10 @@ export default function CartSidebar() {
                     </Button>
                   </div>
 
-                  {subtotal < 50 && (
+                  {!isFreeShipping && subtotal > 0 && (
                     <div className="bg-blue-50 p-3 rounded-lg">
                       <p className="text-sm text-blue-700">
-                        💡 Agrega ${(50 - subtotal).toFixed(2)} más para envío gratis
+                        {`💡 Agrega $${(minOrderForFreeShipping - subtotal).toFixed(2)} más para envío gratis`}
                       </p>
                     </div>
                   )}

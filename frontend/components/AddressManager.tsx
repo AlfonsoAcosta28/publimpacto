@@ -81,18 +81,20 @@ export default function AddressManager({ onAddressSelect, selectedAddressId, sho
     fetchAddresses();
   }, []);
 
+  // Seleccionar automáticamente la dirección principal si no hay una seleccionada
   useEffect(() => {
-    // Seleccionar automáticamente la dirección principal si no hay una seleccionada
-    if (addresses.length > 0 && !selectedAddressId) {
+    if (showSelectButton && addresses.length > 0 && !selectedAddressId) {
       const defaultAddress = addresses.find(addr => addr.es_principal);
-      if (defaultAddress && onAddressSelect) {
-        onAddressSelect(defaultAddress);
-        setSelectedId(defaultAddress.id!);
+      if (defaultAddress) {
+        if (onAddressSelect) {
+          onAddressSelect(defaultAddress);
+        }
+        setSelectedId(Number(defaultAddress.id));
       }
     } else if (selectedAddressId) {
       setSelectedId(selectedAddressId);
     }
-  }, [addresses, selectedAddressId, onAddressSelect]);
+  }, [addresses, selectedAddressId, onAddressSelect, showSelectButton]);
 
   const fetchAddresses = async () => {
     try {
@@ -410,8 +412,9 @@ export default function AddressManager({ onAddressSelect, selectedAddressId, sho
               </div>
             </div>
             <div className="flex gap-2 mt-2">
-              {!address.es_principal && !showSelectButton && (
+              {!address.es_principal && (
                 <Button
+                className='text-black'
                   variant="outline"
                   size="sm"
                   onClick={() => handleSetDefault(address.id!)}

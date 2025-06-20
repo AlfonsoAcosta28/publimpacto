@@ -11,7 +11,7 @@ import camisaService from "@/services/camisasServices"
 import { FaTshirt } from "react-icons/fa";
 import AddressManager from "@/components/AddressManager"
 import { Separator } from "@radix-ui/react-separator"
-import shippingpriceService from "@/services/shippingpricesService"
+import { useShipping } from "@/contexts/ShippingContext";
 
 // Tipos para el diseño de la camisa
 interface CamisaDesign {
@@ -114,6 +114,7 @@ export default function ProductPersonalizationPage() {
     const [traseroY, setTraseroY] = useState(0.05);
 
     // const precioPersonalizacion = 5.99;
+    const { shippingPrice, minOrderForFreeShipping } = useShipping();
 
     const tref = useRef(null);
 
@@ -457,18 +458,6 @@ export default function ProductPersonalizationPage() {
         setTraseroX(x);
         setTraseroY(y);
     };
-
-    const [shippingPrice, setShippingPrice] = useState<number>(0);
-    const [minOrder, setMinOrder] = useState<number>(0);
-
-    useEffect(() => {
-        const fetchShipping = async () => {
-            const { valorEnvio, min_order } = await shippingpriceService.getCurrentPrice();
-            setShippingPrice(valorEnvio);
-            setMinOrder(min_order);
-        };
-        fetchShipping();
-    }, []);
 
     // Renderizar fase 1: Diseño de la camisa
     const renderPhase1 = () => (
@@ -966,7 +955,7 @@ export default function ProductPersonalizationPage() {
     // Renderizar fase 3: Pago (esqueleto)
     const renderPhase3 = () => {
         const precioTotal = calcularPrecioTotal();
-        const envioGratis = precioTotal >= minOrder;
+        const envioGratis = precioTotal >= minOrderForFreeShipping;
         const precioEnvioMostrar = envioGratis ? 0 : shippingPrice;
 
         return (
@@ -1113,7 +1102,7 @@ export default function ProductPersonalizationPage() {
                                                     <>
                                                         ${shippingPrice.toFixed(2)}
                                                         <div className="text-xs text-green-600 mt-1">
-                                                            Envío gratis para compras arriba de ${minOrder}
+                                                            Envío gratis para compras arriba de ${minOrderForFreeShipping}
                                                         </div>
                                                     </>
                                                 )}
