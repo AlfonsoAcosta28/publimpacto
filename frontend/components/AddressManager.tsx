@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import Swal from "sweetalert2";
 
 interface Address {
   id?: number;
@@ -39,9 +40,10 @@ interface Address {
 interface AddressManagerProps {
   onAddressSelect?: (address: Address) => void;
   selectedAddressId?: number;
+  showSelectButton?: boolean;
 }
 
-export default function AddressManager({ onAddressSelect, selectedAddressId }: AddressManagerProps) {
+export default function AddressManager({ onAddressSelect, selectedAddressId, showSelectButton }: AddressManagerProps) {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +63,7 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [errors, setErrors] = useState<Partial<Address>>({});
+  const [selectedId, setSelectedId] = useState<number | null>(selectedAddressId || null);
 
   const horariosDisponibles = [
     "9:00 - 10:00",
@@ -84,7 +87,10 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
       const defaultAddress = addresses.find(addr => addr.es_principal);
       if (defaultAddress && onAddressSelect) {
         onAddressSelect(defaultAddress);
+        setSelectedId(defaultAddress.id!);
       }
+    } else if (selectedAddressId) {
+      setSelectedId(selectedAddressId);
     }
   }, [addresses, selectedAddressId, onAddressSelect]);
 
@@ -104,7 +110,7 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
 
   const validateAddress = (address: Address) => {
     const newErrors: Partial<Address> = {};
-    
+
     if (!address.nombre) newErrors.nombre = 'El nombre es requerido';
     if (!address.calle) newErrors.calle = 'La calle es requerida';
     if (!address.numero_calle) newErrors.numero_calle = 'El número es requerido';
@@ -114,7 +120,7 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
     if (!address.codigo_postal) newErrors.codigo_postal = 'El código postal es requerido';
     if (!address.descripcion_casa) newErrors.descripcion_casa = 'La descripción es requerida';
     if (!address.horario_preferido) newErrors.horario_preferido = 'El horario es requerido';
-    
+
     if (address.codigo_postal && !/^[0-9]{5}$/.test(address.codigo_postal)) {
       newErrors.codigo_postal = 'El código postal debe tener 5 dígitos';
     }
@@ -137,7 +143,7 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
         await addressService.createAddress(currentAddress as Address);
         toast.success("Dirección agregada correctamente");
       }
-      
+
       setIsDialogOpen(false);
       fetchAddresses();
       setCurrentAddress({
@@ -153,10 +159,10 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
         horario_preferido: '',
         es_principal: false
       });
-    } catch (error) {
+    } catch (error : any) {
       if (error.response.status === 400) {
         toast.error(error.response.data.message);
-      }else{
+      } else {
         toast.error("Error al guardar la dirección");
       }
     }
@@ -168,13 +174,26 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
   };
 
   const handleDelete = async (id: number) => {
-    try {
-      await addressService.deleteAddress(id);
-      toast.success("Dirección eliminada correctamente");
-      fetchAddresses();
-    } catch (error) {
-      toast.error("Error al eliminar la dirección");
+    const result = await Swal.fire({
+      title: "¿Estás seguro?",
+      text: "No podrás revertir esta acción",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar"
+    });
+    if (result.isConfirmed) {
+      try {
+        await addressService.deleteAddress(id);
+        toast.success("Dirección eliminada correctamente");
+        fetchAddresses();
+      } catch (error) {
+        toast.error("Error al eliminar la dirección");
+      }
     }
+    
   };
 
   const handleSetDefault = async (id: number) => {
@@ -226,7 +245,7 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
                 <Input
                   id="nombre"
                   value={currentAddress.nombre as string}
-                  onChange={(e) => setCurrentAddress({...currentAddress, nombre: e.target.value})}
+                  onChange={(e) => setCurrentAddress({ ...currentAddress, nombre: e.target.value })}
                   className={errors.nombre ? "border-red-500" : ""}
                   placeholder="Ej: Casa, Trabajo, etc."
                 />
@@ -237,7 +256,7 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
                 <Input
                   id="calle"
                   value={currentAddress.calle as string}
-                  onChange={(e) => setCurrentAddress({...currentAddress, calle: e.target.value})}
+                  onChange={(e) => setCurrentAddress({ ...currentAddress, calle: e.target.value })}
                   className={errors.calle ? "border-red-500" : ""}
                 />
                 {errors.calle && <span className="text-sm text-red-500">{errors.calle}</span>}
@@ -247,7 +266,7 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
                 <Input
                   id="numero_calle"
                   value={currentAddress.numero_calle as string}
-                  onChange={(e) => setCurrentAddress({...currentAddress, numero_calle: e.target.value})}
+                  onChange={(e) => setCurrentAddress({ ...currentAddress, numero_calle: e.target.value })}
                   className={errors.numero_calle ? "border-red-500" : ""}
                 />
                 {errors.numero_calle && <span className="text-sm text-red-500">{errors.numero_calle}</span>}
@@ -257,7 +276,7 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
                 <Input
                   id="colonia"
                   value={currentAddress.colonia as string}
-                  onChange={(e) => setCurrentAddress({...currentAddress, colonia: e.target.value})}
+                  onChange={(e) => setCurrentAddress({ ...currentAddress, colonia: e.target.value })}
                   className={errors.colonia ? "border-red-500" : ""}
                 />
                 {errors.colonia && <span className="text-sm text-red-500">{errors.colonia}</span>}
@@ -267,7 +286,7 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
                 <Input
                   id="codigo_postal"
                   value={currentAddress.codigo_postal as string}
-                  onChange={(e) => setCurrentAddress({...currentAddress, codigo_postal: e.target.value})}
+                  onChange={(e) => setCurrentAddress({ ...currentAddress, codigo_postal: e.target.value })}
                   className={errors.codigo_postal ? "border-red-500" : ""}
                 />
                 {errors.codigo_postal && <span className="text-sm text-red-500">{errors.codigo_postal}</span>}
@@ -277,7 +296,7 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
                 <Input
                   id="ciudad"
                   value={currentAddress.ciudad as string}
-                  onChange={(e) => setCurrentAddress({...currentAddress, ciudad: e.target.value})}
+                  onChange={(e) => setCurrentAddress({ ...currentAddress, ciudad: e.target.value })}
                   className={errors.ciudad ? "border-red-500" : ""}
                 />
                 {errors.ciudad && <span className="text-sm text-red-500">{errors.ciudad}</span>}
@@ -287,7 +306,7 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
                 <Input
                   id="estado"
                   value={currentAddress.estado as string}
-                  onChange={(e) => setCurrentAddress({...currentAddress, estado: e.target.value})}
+                  onChange={(e) => setCurrentAddress({ ...currentAddress, estado: e.target.value })}
                   className={errors.estado ? "border-red-500" : ""}
                 />
                 {errors.estado && <span className="text-sm text-red-500">{errors.estado}</span>}
@@ -297,11 +316,11 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
                 <span className="text-sm text-gray-400 ">Este es un horario de preferencia para la entrega de tu pedido</span>
                 <Select
                   value={currentAddress.horario_preferido as string}
-                  onValueChange={(value) => setCurrentAddress({...currentAddress, horario_preferido: value})}
+                  onValueChange={(value) => setCurrentAddress({ ...currentAddress, horario_preferido: value })}
                 >
                   <SelectTrigger className={errors.horario_preferido ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecciona un horario" />
-                    
+
                   </SelectTrigger>
                   <SelectContent>
                     {horariosDisponibles.map((horario) => (
@@ -318,7 +337,7 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
                 <Textarea
                   id="descripcion_casa"
                   value={currentAddress.descripcion_casa as string}
-                  onChange={(e) => setCurrentAddress({...currentAddress, descripcion_casa: e.target.value})}
+                  onChange={(e) => setCurrentAddress({ ...currentAddress, descripcion_casa: e.target.value })}
                   className={errors.descripcion_casa ? "border-red-500" : ""}
                 />
                 {errors.descripcion_casa && <span className="text-sm text-red-500">{errors.descripcion_casa}</span>}
@@ -328,7 +347,7 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
                 <Textarea
                   id="referencias"
                   value={currentAddress.referencias as string}
-                  onChange={(e) => setCurrentAddress({...currentAddress, referencias: e.target.value})}
+                  onChange={(e) => setCurrentAddress({ ...currentAddress, referencias: e.target.value })}
                   placeholder="Indica puntos de referencia para encontrar tu domicilio"
                 />
               </div>
@@ -349,26 +368,30 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
         {addresses.map((address) => (
           <div
             key={address.id}
-            className={`p-4 border rounded-lg ${
-              selectedAddressId === address.id ? 'border-pink-500' : 'border-gray-200'
-            } ${address.is_default ? 'bg-gray-50' : ''}`}
+            className={`p-4 border rounded-lg transition-colors duration-200 ${showSelectButton && selectedId === address.id
+              ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent'
+              : selectedAddressId === address.id
+                ? 'border-pink-500'
+                : 'border-gray-200'
+              } ${address.is_default && !(showSelectButton && selectedId === address.id) ? 'bg-gray-50' : ''}`}
           >
             <div className="flex justify-between items-start mb-2">
               <div>
                 <h3 className="font-medium">
                   {address.calle} {address.numero_calle}
-                  {address.is_default && (
-                    <span className="ml-2 text-sm text-pink-500">(Predeterminada)</span>
+                  {address.es_principal && (
+                    <span className="ml-2 text-sm text-white-200">(Predeterminada)</span>
                   )}
                 </h3>
-                <p className="text-sm text-gray-600">
+                <p className={`text-sm text-gray-600  ${showSelectButton && selectedId === address.id ? 'text-white' : 'text-black'}`} >
                   {address.colonia}, {address.ciudad}, {address.estado}
                 </p>
-                <p className="text-sm text-gray-600">CP: {address.codigo_postal}</p>
-                <p className="text-sm text-gray-600">Horario: {address.horario_preferido}</p>
+                <p className={`text-sm  ${showSelectButton && selectedId === address.id ? 'text-white' : 'text-gray-600'} `}>CP: {address.codigo_postal}</p>
+                <p className={`text-sm  ${showSelectButton && selectedId === address.id ? 'text-white' : 'text-gray-600'} `}>Horario: {address.horario_preferido}</p>
               </div>
               <div className="flex gap-2">
                 <Button
+                  className="text-black"
                   variant="outline"
                   size="sm"
                   onClick={() => handleEdit(address)}
@@ -376,6 +399,8 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
                   Editar
                 </Button>
                 <Button
+                  className="bg-red-500 hover:bg-red-600 text-white hover:text-white !important"
+
                   variant="outline"
                   size="sm"
                   onClick={() => handleDelete(address.id!)}
@@ -385,7 +410,7 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
               </div>
             </div>
             <div className="flex gap-2 mt-2">
-              {!address.is_default && (
+              {!address.es_principal && !showSelectButton && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -394,7 +419,20 @@ export default function AddressManager({ onAddressSelect, selectedAddressId }: A
                   Establecer como predeterminada
                 </Button>
               )}
-              {onAddressSelect && (
+              {showSelectButton && (
+                <Button
+                  size="sm"
+                  className={selectedId === address.id ? 'bg-white text-black hover:bg-white hover:cursor-default' : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'}
+                  onClick={() => {
+                    setSelectedId(address.id!);
+                    if (onAddressSelect) onAddressSelect(address);
+                  }}
+                >
+                  {selectedId === address.id ? 'Seleccionado' : 'Seleccionar'}
+
+                </Button>
+              )}
+              {!showSelectButton && onAddressSelect && (
                 <Button
                   size="sm"
                   onClick={() => onAddressSelect(address)}

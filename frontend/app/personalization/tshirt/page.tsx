@@ -9,6 +9,9 @@ import Controls from "@/components/camisa/containers/Controls"
 import { Irgb } from "@/components/camisa/types/Irgb"
 import camisaService from "@/services/camisasServices"
 import { FaTshirt } from "react-icons/fa";
+import AddressManager from "@/components/AddressManager"
+import { Separator } from "@radix-ui/react-separator"
+import shippingpriceService from "@/services/shippingpricesService"
 
 // Tipos para el diseño de la camisa
 interface CamisaDesign {
@@ -471,6 +474,18 @@ export default function ProductPersonalizationPage() {
         setTraseroY(y);
     };
 
+    const [shippingPrice, setShippingPrice] = useState<number>(0);
+    const [minOrder, setMinOrder] = useState<number>(0);
+
+    useEffect(() => {
+        const fetchShipping = async () => {
+            const { valorEnvio, min_order } = await shippingpriceService.getCurrentPrice();
+            setShippingPrice(valorEnvio);
+            setMinOrder(min_order);
+        };
+        fetchShipping();
+    }, []);
+
     // Renderizar fase 1: Diseño de la camisa
     const renderPhase1 = () => (
         <div className="min-h-screen bg-gray-50">
@@ -622,8 +637,8 @@ export default function ProductPersonalizationPage() {
                                                         setSelectedColor(null);
                                                     }}
                                                     className={`w-32 h-32 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 ${selectedCamisa?.id === camisa.id
-                                                            ? "bg-blue-200 border-blue-700"
-                                                            : "bg-white text-gray-700 hover:bg-gray-100"
+                                                        ? "bg-blue-200 border-blue-700"
+                                                        : "bg-white text-gray-700 hover:bg-gray-100"
                                                         }`}
                                                 >
                                                     <FaTshirt size={32} className="text-blue-600" />
@@ -921,7 +936,7 @@ export default function ProductPersonalizationPage() {
                                             Nombre del Producto
                                         </label>
                                         <input
-                                        id="nombre_producto"
+                                            id="nombre_producto"
                                             type="text"
                                             value={nombre}
                                             onChange={(e) => setNombre(e.target.value)}
@@ -943,14 +958,21 @@ export default function ProductPersonalizationPage() {
                             <ArrowLeft className="w-5 h-5" />
                             Volver al Diseño
                         </button>
-                        <button
-                            onClick={handleNextPhase}
-                            disabled={itemsSeleccionados.length === 0 || !nombre.trim()}
-                            className="bg-blue-600 text-white py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                        >
-                            Continuar al Pago
-                            <ArrowRight className="w-5 h-5" />
-                        </button>
+                        <div>
+
+                            <button
+                                onClick={handleNextPhase}
+                                // disabled={itemsSeleccionados.length === 0 || !nombre.trim()}
+                                className="bg-blue-600 text-white py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                                Continuar al Pago
+                                <ArrowRight className="w-5 h-5" />
+                            </button>
+                            {itemsSeleccionados.length === 0 &&
+
+                                <span className="text-red-500 text-sm">Para continuar agregue un nombre al Producto</span>
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
@@ -960,6 +982,8 @@ export default function ProductPersonalizationPage() {
     // Renderizar fase 3: Pago (esqueleto)
     const renderPhase3 = () => {
         const precioTotal = calcularPrecioTotal();
+        const envioGratis = precioTotal >= minOrder;
+        const precioEnvioMostrar = envioGratis ? 0 : shippingPrice;
 
         return (
             <div className="min-h-screen bg-gray-50">
@@ -1093,11 +1117,28 @@ export default function ProductPersonalizationPage() {
                                         </div>
                                         <div className="flex justify-between mb-2">
                                             <span>Envío:</span>
-                                            <span>$5.99</span>
+                                            <div className="text-right">
+                                                {envioGratis ? (
+                                                    <>
+                                                        <span className="line-through text-gray-400 mr-2">
+                                                            ${shippingPrice.toFixed(2)}
+                                                        </span>
+                                                        <span className="text-green-600 font-semibold">Gratis</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        ${shippingPrice.toFixed(2)}
+                                                        <div className="text-xs text-green-600 mt-1">
+                                                            Envío gratis para compras arriba de ${minOrder}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
+
                                         <div className="flex justify-between font-semibold text-lg">
                                             <span>Total:</span>
-                                            <span>${(precioTotal + 5.99).toFixed(2)}</span>
+                                            <span>${(precioTotal + precioEnvioMostrar).toFixed(2)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1113,10 +1154,10 @@ export default function ProductPersonalizationPage() {
                                     <p className="text-sm text-gray-500">(Por implementar)</p>
                                 </div>
 
-                                <div className="bg-gray-100 p-4 rounded-lg text-center">
-                                    <p className="text-gray-600">Información de envío</p>
-                                    <p className="text-sm text-gray-500">(Por implementar)</p>
-                                </div>
+                                <hr className="my-4 border-gray-300" />
+
+
+                                <AddressManager showSelectButton />
                             </div>
                         </div>
                     </div>

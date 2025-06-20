@@ -4,6 +4,7 @@ export const shippingpriceService = {
     getCurrentPrice: async () => {
         try {
             const response = await api.get('/shipping-prices/current');
+            console.log(response)
 
             return {
                 valorEnvio: parseFloat(response.data.data.valorEnvio),
