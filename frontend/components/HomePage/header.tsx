@@ -26,9 +26,9 @@ export default function Header() {
             <Link href="/personalization" className="text-gray-700 hover:text-blue-600 font-medium">
               Personalización
             </Link>
-            {/* <Link href="/checkout" className="text-gray-700 hover:text-blue-600 font-medium">
+            <Link href="/checkout" className="text-gray-700 hover:text-blue-600 font-medium">
               Carrito
-            </Link> */}
+            </Link>
           </nav>
 
           <div className="flex items-center space-x-4">

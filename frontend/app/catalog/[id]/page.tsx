@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/router";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
 import { ProductInterface, ProductImage } from "@/interfaces/Product";
 import ReactDOM from "react-dom";
+import { useCart } from "@/contexts/cartContext";
+import { toast } from "sonner";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -19,6 +20,7 @@ export default function ProductDetailPage() {
   const [zoom, setZoom] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
   const imageContainerRef = useRef<HTMLDivElement>(null);
+  const { addToCart, cart } = useCart();
 
   // Configuración de la lupa
   const LENS_SIZE = 200;
@@ -32,7 +34,7 @@ export default function ProductDetailPage() {
         setProduct(data);
         // Selecciona la imagen principal o la primera secundaria
         if (data.ProductImages && data.ProductImages.length > 0) {
-          const primary = data.ProductImages.find((img) => img.is_primary);
+          const primary = data.ProductImages.find((img: ProductImage) => img.is_primary);
           setMainImage(primary ? primary.image_url : data.ProductImages[0].image_url);
         } else {
           setMainImage(data.image || "/placeholder.svg");
@@ -46,8 +48,47 @@ export default function ProductDetailPage() {
     if (id) fetchProduct();
   }, [id]);
 
-  const handleAdd = () => setQuantity((q) => q + 1);
+  const handleAdd = () => {
+    if (product && product.inventory && quantity >= product.inventory.available_quantity) {
+      toast.warning(`No puedes agregar más de ${product.inventory.available_quantity} productos.`);
+    } else {
+      setQuantity((q) => q + 1);
+    }
+  };
   const handleSubtract = () => setQuantity((q) => (q > 1 ? q - 1 : 1));
+
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    const itemInCart = cart.find((item: any) => item.id === product.id);
+    const currentQuantityInCart = itemInCart ? itemInCart.quantity : 0;
+
+    if (product.inventory && (quantity + currentQuantityInCart) > product.inventory.available_quantity) {
+      const canAdd = product.inventory.available_quantity - currentQuantityInCart;
+      if (canAdd > 0) {
+        toast.error(`Solo puedes agregar ${canAdd} más de este producto.`);
+      } else {
+        toast.error("Ya has alcanzado el límite de stock para este producto.");
+      }
+      return;
+    }
+
+    if (!product.inventory) {
+      toast.error("Este producto no tiene inventario configurado.");
+      return;
+    }
+
+    const itemToAdd = {
+      id: product.id,
+      title: product.title,
+      price: product.personalization_price > 0 ? product.personalization_price : product.base_price,
+      image: mainImage || "/placeholder.svg",
+      quantity: quantity,
+      available_quantity: product.inventory.available_quantity,
+    };
+    addToCart(itemToAdd);
+    toast.success("¡Agregado Exitosamente!");
+  };
 
   // Renderiza la lupa fuera del contenedor de la imagen usando un portal
   const renderLens = () => {
@@ -155,15 +196,28 @@ export default function ProductDetailPage() {
             )}
             {product.inventory && (
               <div className="mb-2 text-sm text-gray-500">
-                Stock disponible: {product.inventory.stock_quantity}
+                Stock disponible: {product.inventory.available_quantity}
               </div>
             )}
           </div>
           <div className="flex items-center gap-4 mt-6">
             <Button onClick={handleSubtract} variant="outline" size="icon">-</Button>
             <span className="text-lg font-semibold w-8 text-center">{quantity}</span>
-            <Button onClick={handleAdd} variant="outline" size="icon">+</Button>
-            <Button className="ml-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white">Agregar al carrito</Button>
+            <Button
+              onClick={handleAdd}
+              variant="outline"
+              size="icon"
+              disabled={product?.inventory ? quantity >= product.inventory.available_quantity : false}
+            >
+              +
+            </Button>
+            <Button
+              onClick={handleAddToCart}
+              className="ml-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+              disabled={product?.inventory?.available_quantity === 0}
+            >
+              Agregar al carrito
+            </Button>
           </div>
         </div>
       </div>

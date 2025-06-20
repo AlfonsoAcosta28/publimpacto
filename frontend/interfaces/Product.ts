@@ -6,8 +6,8 @@ export interface ProductImage {
 
 export interface Inventory {
   stock_quantity: number;
-  reserved_quantity: number;
   min_stock_level: number;
+  available_quantity:number;
   status: 'active' | 'inactive' | 'discontinued';
 }
 

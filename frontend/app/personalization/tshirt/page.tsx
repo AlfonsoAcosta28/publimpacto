@@ -408,22 +408,6 @@ export default function ProductPersonalizationPage() {
         }
     };
 
-    const handleLogo = () => {
-        setIsLogo(!isLogo);
-    };
-
-    const handleFull = () => {
-        setIsFull(!isFull);
-    };
-
-    const handleLogoP = (ind: number) => {
-        setLogoP(ind);
-    };
-
-    const handleLogoS = (ind: number) => {
-        setLogoS(ind);
-    };
-
     const changeColor = (rgb: Irgb) => {
         setColor({ r: rgb.r, g: rgb.g, b: rgb.b });
     };
@@ -432,10 +416,10 @@ export default function ProductPersonalizationPage() {
         if (window.innerWidth < 768) setIsMobile(true);
     }, []);
 
-    const checkScreen = () => {
-        if (window.innerWidth < 768) setIsMobile(true);
-        else setIsMobile(false);
-    };
+    // const checkScreen = () => {
+    //     if (window.innerWidth < 768) setIsMobile(true);
+    //     else setIsMobile(false);
+    // };
 
     const handleNextPhase = () => {
         if (currentPhase < 3) {

@@ -136,47 +136,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-lg sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link href="/catalog">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Seguir Comprando</span>
-                  <span className="sm:hidden">Volver</span>
-                </Button>
-              </Link>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold">P</span>
-                </div>
-                <span className="text-xl font-bold text-gray-800 hidden sm:inline">Publimpacto</span>
-              </div>
-            </div>
-
-            <nav className="hidden md:flex space-x-8">
-              <Link href="/" className="text-gray-700 hover:text-blue-600 font-medium">
-                Inicio
-              </Link>
-              <Link href="/catalog" className="text-gray-700 hover:text-blue-600 font-medium">
-                Catálogo
-              </Link>
-              <Link href="/personalization" className="text-gray-700 hover:text-blue-600 font-medium">
-                Personalización
-              </Link>
-            </nav>
-
-            <div className="flex items-center space-x-2">
-              <div className="hidden sm:block">
-                <CartSidebar />
-              </div>
-              <UserMenu />
-            </div>
-          </div>
-        </div>
-      </header>
+      
 
       <div className="container mx-auto px-4 py-4 sm:py-8">
         {/* Page Header */}

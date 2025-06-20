@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -8,42 +8,43 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { ShoppingBag, Plus, Minus, Trash2 } from "lucide-react"
+import { useCart } from "@/contexts/cartContext"
+import shippingpriceService from "@/services/shippingpricesService"
+import { toast } from "sonner"
 
 export default function CartSidebar() {
   const [isOpen, setIsOpen] = useState(false)
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: "Camiseta Premium Personalizada",
-      price: 30.99,
-      quantity: 1,
-      type: "custom",
-      image: "/placeholder.svg?height=80&width=80",
-    },
-    {
-      id: 2,
-      name: "Termo Acero Inoxidable",
-      price: 18.99,
-      quantity: 2,
-      type: "regular",
-      image: "/placeholder.svg?height=80&width=80",
-    },
-  ])
+  const { cart, updateQuantity, removeFromCart } = useCart();
 
-  const updateQuantity = (id: number, newQuantity: number) => {
+  const [shippingPrice, setShippingPrice] = useState<number>(0);
+  const [minOrder, setMinOrder] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchShipping = async () => {
+      const { valorEnvio, min_order } = await shippingpriceService.getCurrentPrice();
+      setShippingPrice(valorEnvio);
+      setMinOrder(min_order);
+      console.log("Se ejecuto");
+    };
+    fetchShipping();
+  }, []);
+
+  const handleUpdateQuantity = (id: string, newQuantity: number, availableQuantity?: number) => {
     if (newQuantity === 0) {
-      removeItem(id)
+      removeFromCart(id)
       return
     }
-    setCartItems(cartItems.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item)))
+    if (availableQuantity && newQuantity > availableQuantity) {
+      toast.warning(`No puedes agregar más de ${availableQuantity} productos.`);
+      return;
+    }
+    updateQuantity(id, newQuantity)
   }
 
-  const removeItem = (id: number) => {
-    setCartItems(cartItems.filter((item) => item.id !== id))
-  }
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+  const envioGratis = subtotal >= minOrder;
 
   return (
     <div className="">
@@ -61,16 +62,16 @@ export default function CartSidebar() {
           </Button>
         </SheetTrigger>
 
-        <SheetContent className="w-full sm:max-w-lg">
+        <SheetContent className="w-full sm:max-w-lg pt-5 pl-10 pr-10 pb-5">
           <SheetHeader>
-            <SheetTitle className="flex items-center justify-between">
+            <SheetTitle className="flex items-center justify-between ">
               <span>Carrito de Compras</span>
               <Badge variant="secondary">{itemCount} productos</Badge>
             </SheetTitle>
           </SheetHeader>
 
           <div className="flex flex-col h-full">
-            {cartItems.length === 0 ? (
+            {cart.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center py-8">
                 <ShoppingBag className="w-16 h-16 text-gray-300 mb-4" />
                 <h3 className="text-lg font-semibold text-gray-600 mb-2">Tu carrito está vacío</h3>
@@ -82,12 +83,12 @@ export default function CartSidebar() {
             ) : (
               <>
                 {/* Cart Items */}
-                <div className="flex-1 overflow-y-auto py-4 space-y-4">
-                  {cartItems.map((item) => (
+                <div className="flex-1 overflow-y-auto space-y-4">
+                  {cart.map((item) => (
                     <div key={item.id} className="flex gap-3 p-3 border rounded-lg">
                       <Image
                         src={item.image || "/placeholder.svg"}
-                        alt={item.name}
+                        alt={item.title}
                         width={80}
                         height={80}
                         className="w-20 h-20 object-cover rounded-md flex-shrink-0"
@@ -96,17 +97,17 @@ export default function CartSidebar() {
                       <div className="flex-1 space-y-2">
                         <div className="flex items-start justify-between">
                           <div>
-                            <h4 className="font-medium text-sm line-clamp-2">{item.name}</h4>
-                            {item.type === "custom" && (
+                            <h4 className="font-medium text-sm line-clamp-2">{item.title}</h4>
+                            {/* {item.type === "custom" && (
                               <Badge variant="secondary" className="text-xs mt-1">
                                 Personalizado
                               </Badge>
-                            )}
+                            )} */}
                           </div>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeItem(item.id)}
+                            onClick={() => removeFromCart(item.id)}
                             className="text-red-500 hover:text-red-700 p-1 h-auto"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -118,7 +119,7 @@ export default function CartSidebar() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
                               className="h-8 w-8 p-0"
                             >
                               <Minus className="w-3 h-3" />
@@ -127,8 +128,9 @@ export default function CartSidebar() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              onClick={() => handleUpdateQuantity(item.id, item.quantity + 1, item.available_quantity)}
                               className="h-8 w-8 p-0"
+                              disabled={item.available_quantity ? item.quantity >= item.available_quantity : false}
                             >
                               <Plus className="w-3 h-3" />
                             </Button>
@@ -148,9 +150,25 @@ export default function CartSidebar() {
                       <span>Subtotal</span>
                       <span>${subtotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>Envío</span>
-                      <span>{subtotal > 50 ? "Gratis" : "$5.99"}</span>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm">Envío:</span>
+                      <div className="text-right text-sm">
+                        {envioGratis ? (
+                          <>
+                            <span className="line-through text-gray-400 mr-2 ">
+                              ${shippingPrice.toFixed(2)}
+                            </span>
+                            <span className="text-green-600 font-semibold">Gratis</span>
+                          </>
+                        ) : (
+                          <>
+                            ${shippingPrice.toFixed(2)}
+                            <div className="text-xs text-green-600 mt-1">
+                              Envío gratis para compras arriba de ${minOrder}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <Separator />
                     <div className="flex justify-between font-semibold">
