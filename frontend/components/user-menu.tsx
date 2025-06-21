@@ -77,13 +77,6 @@ export default function UserMenu() {
           </DropdownMenuItem>
         </Link>
 
-        <Link href="/settings">
-          <DropdownMenuItem>
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Configuración</span>
-          </DropdownMenuItem>
-        </Link>
-
         <DropdownMenuSeparator />
 
         <DropdownMenuItem onClick={handleLogout} className="text-red-600">

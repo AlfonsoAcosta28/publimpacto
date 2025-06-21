@@ -2,8 +2,8 @@ import api from './index';
 
 export const orderService = {
   
-  getUserOrders: async () => {
-    const response = await api.get('/orders/user');
+  getUserOrders: async (page = 1, limit = 4) => {
+    const response = await api.get(`/orders/user?page=${page}&limit=${limit}`);
     return response.data;
   },
   

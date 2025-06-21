@@ -319,12 +319,11 @@ exports.me = async (req, res) => {
 };
 
 exports.updateProfile = async (req, res) => {
-  // console.log(req.body)
+  console.log(req.body)
   try {
     const { 
       nombre, 
-      telefono, 
-      avatar,
+      telefono
     } = req.body;
 
     // Obtener el usuario de la base de datos usando el ID del token
@@ -334,10 +333,14 @@ exports.updateProfile = async (req, res) => {
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
 
+    if(telefono.length !== 10){
+      return res.status(400).json({message: 'el telefono debe contener 10 digitos'});
+    }
+
     // Actualizar los datos básicos del usuario
     userFromDB.nombre = nombre || userFromDB.nombre;
     userFromDB.telefono = telefono || userFromDB.telefono;
-    userFromDB.avatar = avatar || userFromDB.avatar;
+    userFromDB.avatar = userFromDB.avatar;
 
     // Guardar los cambios en la base de datos
     await userFromDB.save();

@@ -48,22 +48,36 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalOrders: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: 4
+  })
 
   useEffect(() => {
     fetchOrders()
-  }, [])
+  }, [currentPage])
 
   const fetchOrders = async () => {
     try {
       setLoading(true)
-      const response = await orderService.getUserOrders()
-      setOrders(response)
+      const response = await orderService.getUserOrders(currentPage, 4)
+      setOrders(response.orders)
+      setPagination(response.pagination)
     } catch (error: any) {
       toast.error("Error al cargar las órdenes")
       console.error("Error fetching orders:", error)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
   }
 
   const getStatusInfo = (status: string) => {
@@ -82,7 +96,7 @@ export default function OrdersPage() {
         }
       case "enviado":
         return {
-          label: "Enviado",
+          label: "Tu pedido esta en camino",
           color: "bg-purple-100 text-purple-800",
           icon: Truck,
         }
@@ -121,6 +135,23 @@ export default function OrdersPage() {
     return matchesSearch && matchesStatus
   })
 
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = []
+    const maxVisiblePages = 5
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2))
+    let endPage = Math.min(pagination.totalPages, startPage + maxVisiblePages - 1)
+    
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1)
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i)
+    }
+    return pages
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -138,6 +169,11 @@ export default function OrdersPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-4">Mis Compras</h1>
           <p className="text-gray-600 text-lg">Revisa el estado de todos tus pedidos</p>
+          {pagination.totalOrders > 0 && (
+            <p className="text-sm text-gray-500 mt-2">
+              Mostrando {((currentPage - 1) * pagination.limit) + 1} - {Math.min(currentPage * pagination.limit, pagination.totalOrders)} de {pagination.totalOrders} pedidos
+            </p>
+          )}
         </div>
 
         {/* Filters */}
@@ -185,7 +221,7 @@ export default function OrdersPage() {
                 <CardHeader className="bg-gray-50">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-lg">Pedido</CardTitle>
+                      <CardTitle className="text-lg">Pedido #{order.id}</CardTitle>
                       <p className="text-gray-600">Pedido realizado el {formatDate(order.created_at)}</p>
                       <p className="text-sm text-gray-500">
                         Dirección: {order.address.calle} {order.address.numero_calle}, {order.address.colonia}, {order.address.ciudad}
@@ -252,21 +288,57 @@ export default function OrdersPage() {
           })}
         </div>
 
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="flex justify-center mt-8">
+            <div className="flex items-center space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={!pagination.hasPrevPage}
+                onClick={() => handlePageChange(currentPage - 1)}
+              >
+                Anterior
+              </Button>
+              
+              {getPageNumbers().map((pageNum) => (
+                <Button
+                  key={pageNum}
+                  variant={pageNum === currentPage ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handlePageChange(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              ))}
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={!pagination.hasNextPage}
+                onClick={() => handlePageChange(currentPage + 1)}
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Empty State */}
         {filteredOrders.length === 0 && !loading && (
           <Card className="text-center py-12">
             <CardContent>
               <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                {orders.length === 0 ? "No tienes pedidos aún" : "No se encontraron pedidos"}
+                {pagination.totalOrders === 0 ? "No tienes pedidos aún" : "No se encontraron pedidos"}
               </h3>
               <p className="text-gray-500 mb-6">
-                {orders.length === 0 
+                {pagination.totalOrders === 0 
                   ? "¡Explora nuestro catálogo y realiza tu primera compra!" 
                   : "Intenta ajustar los filtros de búsqueda"
                 }
               </p>
-              {orders.length === 0 && (
+              {pagination.totalOrders === 0 && (
                 <Link href="/catalog">
                   <Button>Explorar Productos</Button>
                 </Link>

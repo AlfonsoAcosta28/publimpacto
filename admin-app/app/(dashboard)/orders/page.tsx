@@ -81,6 +81,8 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [openOrderId, setOpenOrderId] = useState<number | null>(null)
+  const [openCancelShippingId, setOpenCancelShippingId] = useState<number | null>(null)
+  const [openCancelOrderId, setOpenCancelOrderId] = useState<number | null>(null)
 
   const [stats, setStats] = useState({
     total: 0,
@@ -130,6 +132,7 @@ export default function OrdersPage() {
     try {
       await orderService.cancelOrder(orderId)
       toast("Pedido cancelado correctamente")
+      setOpenCancelOrderId(null)
       fetchOrders()
     } catch (error) {
       toast("No se pudo cancelar el pedido")
@@ -154,6 +157,17 @@ export default function OrdersPage() {
       fetchOrders()
     } catch (error) {
       toast("No se pudo marcar el pedido como entregado")
+    }
+  }
+
+  const handleCancelShipping = async (orderId: number) => {
+    try {
+      await orderService.updateOrderStatus(orderId, "pendiente")
+      toast("Envío cancelado, pedido regresado a pendiente")
+      setOpenCancelShippingId(null)
+      fetchOrders()
+    } catch (error) {
+      toast("No se pudo cancelar el envío")
     }
   }
 
@@ -471,68 +485,178 @@ ${order.address.calle} ${order.address.numero_calle}
                     </TableCell>
                     <TableCell className="text-right">
                       {order.status === "pendiente" ? (
-                        abrirModalInfo(order)
-                      ) : order.status === "enviado" ? (
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => setSelectedOrder(order)}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              Entregar
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                              <DialogTitle>Confirmar Entrega - Pedido #{order.id}</DialogTitle>
-                              <DialogDescription>
-                                Confirma que el pedido ha sido entregado al cliente
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <span className="font-medium">Nombre:</span>
-                                <span className="col-span-3">{order.user.nombre}</span>
-                              </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <span className="font-medium">Correo:</span>
-                                <span className="col-span-3">{order.user.correo}</span>
-                              </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <span className="font-medium">Dirección:</span>
-                                <span className="col-span-3">{order.address.calle} {order.address.numero_calle}, {order.address.colonia}</span>
-                              </div>
-                              <div className="space-y-2">
-                                <span className="font-medium">Productos a entregar:</span>
-                                <div className="pl-4 space-y-2">
-                                  {order.items.map((item) => (
-                                    <div key={item.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                                      <img 
-                                        src={item.product.image} 
-                                        alt={item.product.title}
-                                        className="w-10 h-10 object-cover rounded"
-                                      />
-                                      <div className="flex-1">
-                                        <p className="text-sm font-medium">{item.product.title}</p>
-                                        <p className="text-sm text-blue-600 font-bold">Cantidad: {item.cantidad}</p>
-                                      </div>
-                                    </div>
-                                  ))}
+                        <div className="flex gap-2 justify-end">
+                          {abrirModalInfo(order)}
+                          <Dialog open={openCancelOrderId === order.id} onOpenChange={(open) => {
+                            if (!open) setOpenCancelOrderId(null);
+                          }}>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-red-500 text-red-600 hover:bg-red-50"
+                                onClick={() => setOpenCancelOrderId(order.id)}
+                              >
+                                Cancelar Pedido
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                              <DialogHeader>
+                                <DialogTitle>Cancelar Pedido - #{order.id}</DialogTitle>
+                                <DialogDescription>
+                                  ¿Estás seguro de que deseas cancelar este pedido? Esta acción no se puede deshacer.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <span className="font-medium">Cliente:</span>
+                                  <span className="col-span-3">{order.user.nombre}</span>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <span className="font-medium">Correo:</span>
+                                  <span className="col-span-3">{order.user.correo}</span>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <span className="font-medium">Total:</span>
+                                  <span className="col-span-3">${order.total}</span>
+                                </div>
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                  <p className="text-sm text-red-800">
+                                    <strong>Advertencia:</strong> Al cancelar el pedido, se notificará al cliente y se procesará el reembolso si corresponde.
+                                  </p>
                                 </div>
                               </div>
-                            </div>
-                            <div className="flex justify-end">
+                              <div className="flex justify-end gap-2">
+                                <Button 
+                                  variant="outline"
+                                  onClick={() => setOpenCancelOrderId(null)}
+                                >
+                                  Cancelar
+                                </Button>
+                                <Button
+                                  onClick={() => handleCancelOrder(order.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Confirmar Cancelación
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      ) : order.status === "enviado" ? (
+                        <div className="flex gap-2 justify-end">
+                          <Dialog>
+                            <DialogTrigger asChild>
                               <Button
-                                onClick={() => handleDeliverOrder(order.id)}
+                                variant="default"
+                                size="sm"
+                                onClick={() => setSelectedOrder(order)}
                                 className="bg-green-600 hover:bg-green-700"
                               >
-                                Confirmar Entrega
+                                Entregar
                               </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                              <DialogHeader>
+                                <DialogTitle>Confirmar Entrega - Pedido #{order.id}</DialogTitle>
+                                <DialogDescription>
+                                  Confirma que el pedido ha sido entregado al cliente
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <span className="font-medium">Nombre:</span>
+                                  <span className="col-span-3">{order.user.nombre}</span>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <span className="font-medium">Correo:</span>
+                                  <span className="col-span-3">{order.user.correo}</span>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <span className="font-medium">Dirección:</span>
+                                  <span className="col-span-3">{order.address.calle} {order.address.numero_calle}, {order.address.colonia}</span>
+                                </div>
+                                <div className="space-y-2">
+                                  <span className="font-medium">Productos a entregar:</span>
+                                  <div className="pl-4 space-y-2">
+                                    {order.items.map((item) => (
+                                      <div key={item.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                                        <img 
+                                          src={item.product.image} 
+                                          alt={item.product.title}
+                                          className="w-10 h-10 object-cover rounded"
+                                        />
+                                        <div className="flex-1">
+                                          <p className="text-sm font-medium">{item.product.title}</p>
+                                          <p className="text-sm text-blue-600 font-bold">Cantidad: {item.cantidad}</p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex justify-end">
+                                <Button
+                                  onClick={() => handleDeliverOrder(order.id)}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  Confirmar Entrega
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                          <Dialog open={openCancelShippingId === order.id} onOpenChange={(open) => {
+                            if (!open) setOpenCancelShippingId(null);
+                          }}>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-red-500 text-red-600 hover:bg-red-50"
+                                onClick={() => setOpenCancelShippingId(order.id)}
+                              >
+                                Cancelar Envío
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                              <DialogHeader>
+                                <DialogTitle>Cancelar Envío - Pedido #{order.id}</DialogTitle>
+                                <DialogDescription>
+                                  ¿Estás seguro de que deseas cancelar el envío? El pedido regresará a estado pendiente.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <span className="font-medium">Cliente:</span>
+                                  <span className="col-span-3">{order.user.nombre}</span>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <span className="font-medium">Dirección:</span>
+                                  <span className="col-span-3">{order.address.calle} {order.address.numero_calle}, {order.address.colonia}</span>
+                                </div>
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                  <p className="text-sm text-yellow-800">
+                                    <strong>Motivo común:</strong> No se encontró a la persona en la dirección especificada.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex justify-end gap-2">
+                                <Button 
+                                  variant="outline"
+                                  onClick={() => setOpenCancelShippingId(null)}
+                                >
+                                  Cancelar
+                                </Button>
+                                <Button
+                                  onClick={() => handleCancelShipping(order.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Confirmar Cancelación
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
                       ) : (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -542,6 +666,9 @@ ${order.address.calle} ${order.address.numero_calle}
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => abrirModalInfo(order)}>Ver Detalles</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, "pendiente")}>
+                              Marcar como Pendiente
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, "procesando")}>
                               Marcar como Procesando
                             </DropdownMenuItem>

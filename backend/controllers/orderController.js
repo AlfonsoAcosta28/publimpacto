@@ -5,7 +5,7 @@ const Product = require('../models/Product');
 const ProductImage = require('../models/ProductImage');
 const Address = require('../models/Address');
 const Inventory = require('../models/Inventory');
-const ShippingPrice = require('../models/ShippingPrice');
+const ShippingPrice = require('../models/shippingPrice');
 const sequelize = require('../config/database');
 
 exports.getAllOrders = async (req, res) => {
@@ -165,8 +165,17 @@ exports.getOrderById = async (req, res) => {
 exports.getUserOrders = async (req, res) => {
     try {
         const userId = req.user.id;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 4;
+        const offset = (page - 1) * limit;
+        
         // Obtener la URL base
         const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+        // Get total count for pagination
+        const totalOrders = await Order.count({
+            where: { user_id: userId }
+        });
 
         const orders = await Order.findAll({
             where: { user_id: userId },
@@ -201,7 +210,9 @@ exports.getUserOrders = async (req, res) => {
                     ]
                 }
             ],
-            order: [['created_at', 'DESC']]
+            order: [['created_at', 'DESC']],
+            limit: limit,
+            offset: offset
         });
 
         // Transformar la respuesta para incluir la imagen en el formato esperado
@@ -235,7 +246,21 @@ exports.getUserOrders = async (req, res) => {
             }))
         }));
 
-        res.json(transformedOrders);
+        const totalPages = Math.ceil(totalOrders / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+
+        res.json({
+            orders: transformedOrders,
+            pagination: {
+                currentPage: page,
+                totalPages: totalPages,
+                totalOrders: totalOrders,
+                hasNextPage: hasNextPage,
+                hasPrevPage: hasPrevPage,
+                limit: limit
+            }
+        });
     } catch (error) {
         console.log(error)
         res.status(500).json({ message: 'Error al obtener los pedidos del usuario', error: error.message });
@@ -285,6 +310,25 @@ exports.createOrder = async (req, res) => {
             return res.status(400).json({ message: 'Algunos productos no existen' });
         }
 
+        // Verificar disponibilidad en inventario
+        const inventoryItems = await Inventory.findAll({
+            where: { product_id: productIds }
+        });
+
+        for (const item of items) {
+            const inventory = inventoryItems.find(inv => inv.product_id === item.product_id);
+            if (!inventory) {
+                await transaction.rollback();
+                return res.status(400).json({ message: `No hay inventario disponible para el producto ID: ${item.product_id}` });
+            }
+
+            const availableQuantity = inventory.stock_quantity - inventory.reserved_quantity;
+            if (availableQuantity < item.cantidad) {
+                await transaction.rollback();
+                return res.status(400).json({ message: `Stock insuficiente para el producto ID: ${item.product_id}. Disponible: ${availableQuantity}, Solicitado: ${item.cantidad}` });
+            }
+        }
+
         // Calculate subtotal
         let subtotal = 0;
         for (const item of items) {
@@ -326,7 +370,7 @@ exports.createOrder = async (req, res) => {
             telefono_contacto: telefono_contacto || address.telefono_contacto
         }, { transaction });
 
-        // Create order items
+        // Create order items and update inventory
         const orderItems = [];
         for (const item of items) {
             const product = products.find(p => p.id === item.product_id);
@@ -346,6 +390,13 @@ exports.createOrder = async (req, res) => {
             }, { transaction });
 
             orderItems.push(orderItem);
+
+            // Update reserved quantity in inventory
+            const inventory = inventoryItems.find(inv => inv.product_id === item.product_id);
+            await inventory.increment('reserved_quantity', { 
+                by: item.cantidad,
+                transaction 
+            });
         }
 
         await transaction.commit();
@@ -365,6 +416,7 @@ exports.createOrder = async (req, res) => {
 };
 
 exports.updateOrderStatus = async (req, res) => {
+    console.log(req.params)
     const transaction = await sequelize.transaction();
     try {
         const order = await Order.findByPk(req.params.id, {
@@ -424,6 +476,7 @@ exports.updateOrderStatus = async (req, res) => {
             order
         });
     } catch (error) {
+        console.log(error)
         await transaction.rollback();
         res.status(500).json({ message: 'Error al actualizar el estado del pedido', error: error.message });
     }
