@@ -27,7 +27,7 @@ export default function Header() {
               Personalización
             </Link>
             <Link href="/checkout" className="text-gray-700 hover:text-blue-600 font-medium">
-              Carrito
+              Pagar 
             </Link>
           </nav>
 

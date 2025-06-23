@@ -388,8 +388,11 @@ export default function ProductsPage() {
                   name="badge"
                   defaultValue={currentProduct?.badge || ''}
                   placeholder="Ej: Nuevo, Oferta, etc."
-                  className="col-span-3"
+                  className="col-span-2"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                      *Este campo puede estar vacio
+                    </p>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="description" className="text-right">Descripción</Label>
@@ -407,6 +410,9 @@ export default function ProductsPage() {
                   <Label className="text-right">Imágenes Actuales</Label>
                   <div className="col-span-3">
                     <ProductImageDisplay images={currentProduct.ProductImages} />
+                  <p className="text-xs text-gray-500 mt-1">
+                      *Si no seleccionas imagenes nuevas, se mantendran las actuales
+                    </p>
                   </div>
                 </div>
               )}

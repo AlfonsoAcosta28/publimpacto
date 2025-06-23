@@ -14,6 +14,7 @@ import { authService } from "@/services/authService"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
 import AddressManager from "@/components/AddressManager"
+import { getStatusInfo } from "@/utils/OrderStatus"
 
 interface Order {
   id: number
@@ -116,23 +117,6 @@ export default function ProfilePage() {
     setIsEditing(false)
   }
 
-  const getStatusInfo = (status: string) => {
-    switch (status) {
-      case "pendiente":
-        return { label: "Pendiente", color: "bg-yellow-100 text-yellow-800" }
-      case "procesando":
-        return { label: "Procesando", color: "bg-blue-100 text-blue-800" }
-      case "enviado":
-        return { label: "Enviado", color: "bg-purple-100 text-purple-800" }
-      case "entregado":
-        return { label: "Entregado", color: "bg-green-100 text-green-800" }
-      case "cancelado":
-        return { label: "Cancelado", color: "bg-red-100 text-red-800" }
-      default:
-        return { label: "Desconocido", color: "bg-gray-100 text-gray-800" }
-    }
-  }
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       year: 'numeric',
@@ -146,7 +130,7 @@ export default function ProfilePage() {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-4">Mi Perfil</h1>
-          <p className="text-gray-600 text-lg text[100px] text-[#FF5733]">Gestiona tu información personal y preferencias</p>
+          <p className="text-gray-600 text-lg]">Gestiona tu información personal y preferencias</p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">

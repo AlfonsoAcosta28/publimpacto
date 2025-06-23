@@ -187,21 +187,21 @@ export default function OrdersPage() {
 
   const clipToboard = (order: Order) => {
     const addressInfo = `
-📦 Información de Envío - Pedido #${order.id}
+      📦 Información de Envío - Pedido #${order.id}
 
-👤 Cliente: ${order.user.nombre}
-📱 Teléfono: ${order.telefono_contacto}
+      👤 Cliente: ${order.user.nombre}
+      📱 Teléfono: ${order.telefono_contacto}
 
-📍 Dirección:
-🏠 ${order.address.nombre}
-${order.address.calle} ${order.address.numero_calle}
-🏘️ ${order.address.colonia}
-🏙️ ${order.address.ciudad}, ${order.address.estado}
-📮 CP: ${order.address.codigo_postal}
+      📍 Dirección:
+      🏠 ${order.address.nombre}
+      ${order.address.calle} ${order.address.numero_calle}
+      🏘️ ${order.address.colonia}
+      🏙️ ${order.address.ciudad}, ${order.address.estado}
+      📮 CP: ${order.address.codigo_postal}
 
-📝 Referencias: ${order.address.referencias || 'Sin referencias'}
-🏡 Detalles: ${order.address.descripcion_casa || 'Sin detalles adicionales'}
-⏰ Horario Preferido: ${order.address.horario_preferido || 'No especificado'}
+      📝 Referencias: ${order.address.referencias || 'Sin referencias'}
+      🏡 Detalles: ${order.address.descripcion_casa || 'Sin detalles adicionales'}
+      ⏰ Horario Preferido: ${order.address.horario_preferido || 'No especificado'}
     `.trim();
 
     navigator.clipboard.writeText(addressInfo)
@@ -297,8 +297,8 @@ ${order.address.calle} ${order.address.numero_calle}
               <div className="pl-4 space-y-4">
                 {order.items.map((item) => (
                   <div key={item.id} className="flex items-center gap-4 p-2 border rounded-lg">
-                    <img 
-                      src={item.product.image} 
+                    <img
+                      src={item.product.image}
                       alt={item.product.title}
                       className="w-16 h-16 object-cover rounded"
                     />
@@ -360,10 +360,10 @@ ${order.address.calle} ${order.address.numero_calle}
         <h2 className="text-xl font-semibold">Gestión de Pedidos</h2>
         <div className="flex gap-2">
 
-          <Button variant="outline" size="sm" className="flex items-center gap-1">
+          {/* <Button variant="outline" size="sm" className="flex items-center gap-1">
             <Download className="h-4 w-4" />
             Exportar
-          </Button>
+          </Button> */}
         </div>
       </div>
 
@@ -527,7 +527,7 @@ ${order.address.calle} ${order.address.numero_calle}
                                 </div>
                               </div>
                               <div className="flex justify-end gap-2">
-                                <Button 
+                                <Button
                                   variant="outline"
                                   onClick={() => setOpenCancelOrderId(null)}
                                 >
@@ -581,8 +581,8 @@ ${order.address.calle} ${order.address.numero_calle}
                                   <div className="pl-4 space-y-2">
                                     {order.items.map((item) => (
                                       <div key={item.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                                        <img 
-                                          src={item.product.image} 
+                                        <img
+                                          src={item.product.image}
                                           alt={item.product.title}
                                           className="w-10 h-10 object-cover rounded"
                                         />
@@ -641,7 +641,7 @@ ${order.address.calle} ${order.address.numero_calle}
                                 </div>
                               </div>
                               <div className="flex justify-end gap-2">
-                                <Button 
+                                <Button
                                   variant="outline"
                                   onClick={() => setOpenCancelShippingId(null)}
                                 >

@@ -6,7 +6,19 @@ module.exports = {
       const inventario = await InventarioCamisa.create(req.body);
       res.status(201).json(inventario);
     } catch (err) {
+      if (err.name === 'SequelizeUniqueConstraintError') {
+        const { id_camisa, id_talla, id_color } = req.body;
+        const existingInventario = await InventarioCamisa.findOne({
+          where: { id_camisa, id_talla, id_color }
+        });
+        return res.status(409).json({
+          error: 'Combinación ya existente.',
+          type: 'DUPLICATE_COMBINATION',
+          existingInventario: existingInventario
+        });
+      }
       res.status(400).json({ error: err.message });
+      console.log(err)
     }
   },
   async findAll(req, res) {

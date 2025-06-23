@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Swal from 'sweetalert2';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Camisa {
     id?: number;
@@ -83,6 +84,29 @@ export default function CustomThsirtsPage() {
     const [editRango, setEditRango] = useState<PrecioRango>({ id_camisa: 0, min_cantidad: 1, max_cantidad: 1, precio_unitario: 0 });
     const [combinacionesDialogOpen, setCombinacionesDialogOpen] = useState(false);
     const [selectedCamisaForCombinaciones, setSelectedCamisaForCombinaciones] = useState<Camisa | null>(null);
+
+    const tallasComunes = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+    const coloresComunes = [
+        { nombre: "Blanco", rgb: "#ffffff" },
+        { nombre: "Negro", rgb: "#000000" },
+        { nombre: "Gris", rgb: "#808080" },
+        { nombre: "Rojo", rgb: "#ff0000" },
+        { nombre: "Azul", rgb: "#0000ff" },
+        { nombre: "Azul Marino", rgb: "#000080" },
+        { nombre: "Verde", rgb: "#008000" },
+        { nombre: "Amarillo", rgb: "#ffff00" },
+        { nombre: "Naranja", rgb: "#ffa500" },
+        { nombre: "Morado", rgb: "#800080" },
+        { nombre: "Rosado", rgb: "#ffc0cb" },
+    ];
+
+    const handleColorChange = (colorNombre: string) => {
+        const colorSeleccionado = coloresComunes.find(c => c.nombre === colorNombre);
+        if (colorSeleccionado) {
+            setColor(colorSeleccionado.nombre);
+            setRgb(colorSeleccionado.rgb);
+        }
+    };
 
     useEffect(() => {
         cargarCamisas();
@@ -163,7 +187,33 @@ export default function CustomThsirtsPage() {
                 colorObj = data;
             }
             // Crear inventario
-            await camisaService.createInventario({ id_camisa: camisa.id, id_talla: tallaObj.id, id_color: colorObj.id, stock: comb.stock });
+            try {
+                await camisaService.createInventario({ id_camisa: camisa.id, id_talla: tallaObj.id, id_color: colorObj.id, stock: comb.stock });
+            } catch (error: any) {
+                if (error.response && error.response.status === 409) {
+                    const { existingInventario } = error.response.data;
+                    const result = await Swal.fire({
+                        title: "Combinación existente",
+                        text: "Esta combinación ya existe, ¿desea agregar el stock a la existente?",
+                        icon: "question",
+                        showCancelButton: true,
+                        confirmButtonText: "Sí, agregar stock",
+                        cancelButtonText: "No",
+                    });
+
+                    if (result.isConfirmed) {
+                        const newStock = existingInventario.stock + comb.stock;
+                        await camisaService.entradaStock(existingInventario.id, comb.stock);
+                    }
+                } else {
+                    console.error('Error creating inventory:', error);
+                    Swal.fire({
+                        title: "Error",
+                        text: "No se pudo crear la combinación.",
+                        icon: "error"
+                    });
+                }
+            }
         }
         // Crear precio básico para 1 unidad
         await camisaService.createPrecioCamisaRango({ id_camisa: camisa.id, min_cantidad: 1, max_cantidad: 1, precio_unitario: precioBasico });
@@ -367,7 +417,34 @@ export default function CustomThsirtsPage() {
                 colorObj = data;
             }
             // Crear inventario
-            await camisaService.createInventario({ id_camisa: selectedCamisaForCombinaciones.id, id_talla: tallaObj.id, id_color: colorObj.id, stock: comb.stock });
+            try {
+                await camisaService.createInventario({ id_camisa: selectedCamisaForCombinaciones.id, id_talla: tallaObj.id, id_color: colorObj.id, stock: comb.stock });
+            } catch (error: any) {
+                setCombinacionesDialogOpen(false);
+                if (error.response && error.response.status === 409) {
+                    const { existingInventario } = error.response.data;
+                    const mensaje = `[${selectedCamisaForCombinaciones.descripcion} - ${tallaObj.talla} - ${colorObj.nombre_color}] ya existe, ¿desea agregar el stock a la existente?`;
+                    const result = await Swal.fire({
+                        title: "Combinación existente",
+                        text: mensaje,
+                        icon: "question",
+                        showCancelButton: true,
+                        confirmButtonText: "Sí, agregar stock",
+                        cancelButtonText: "No",
+                    });
+
+                    if (result.isConfirmed) {
+                        await camisaService.entradaStock(existingInventario.id, comb.stock);
+                    }
+                } else {
+                    console.error('Error creating inventory:', error);
+                    Swal.fire({
+                        title: "Error",
+                        text: "No se pudo crear la combinación.",
+                        icon: "error"
+                    });
+                }
+            }
         }
 
         setCombinacionesDialogOpen(false);
@@ -399,7 +476,7 @@ export default function CustomThsirtsPage() {
                     <DialogTrigger asChild>
                         <Button className="">Registrar Nueva Camisa</Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+                    <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
                         <form onSubmit={handleAgregarCamisa}>
                             <DialogHeader>
                                 <DialogTitle>Registrar Nueva Camisa</DialogTitle>
@@ -442,29 +519,29 @@ export default function CustomThsirtsPage() {
                                             <label htmlFor="talla" className="text-xs font-medium text-gray-600">
                                                 Talla
                                             </label>
-                                            <Input
-                                                id="talla"
-                                                type="text"
-                                                placeholder="S, M, L, XL"
-                                                value={talla}
-                                                onChange={e => setTalla(e.target.value)}
-                                                className=""
-                                            />
+                                            <Select onValueChange={setTalla} value={talla}>
+                                                <SelectTrigger id="talla">
+                                                    <SelectValue placeholder="Seleccione una talla" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {tallasComunes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                         <div className="space-y-1 flex-1">
                                             <label htmlFor="color" className="text-xs font-medium text-gray-600">
                                                 Color
                                             </label>
-                                            <Input
-                                                id="color"
-                                                type="text"
-                                                placeholder="Rojo, Azul, Verde"
-                                                value={color}
-                                                onChange={e => setColor(e.target.value)}
-                                                className=""
-                                            />
+                                            <Select onValueChange={handleColorChange} value={color}>
+                                                <SelectTrigger id="color">
+                                                    <SelectValue placeholder="Seleccione un color" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {coloresComunes.map(c => <SelectItem key={c.nombre} value={c.nombre}>{c.nombre}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
-                                        <div className="grid mt-1.5">
+                                        <div className="grid w-20">
                                             <label htmlFor="rgb" className="text-xs font-medium text-gray-600">
                                                 Color RGB
                                             </label>
@@ -833,7 +910,7 @@ export default function CustomThsirtsPage() {
 
             {/* Dialog para agregar combinaciones */}
             <Dialog open={combinacionesDialogOpen} onOpenChange={setCombinacionesDialogOpen}>
-                <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
                     <form onSubmit={handleAgregarCombinaciones}>
                         <DialogHeader>
                             <DialogTitle>Agregar Combinaciones - {selectedCamisaForCombinaciones?.descripcion}</DialogTitle>
@@ -847,29 +924,29 @@ export default function CustomThsirtsPage() {
                                         <label htmlFor="tallaCombinacion" className="text-xs font-medium text-gray-600">
                                             Talla
                                         </label>
-                                        <Input
-                                            id="tallaCombinacion"
-                                            type="text"
-                                            placeholder="S, M, L, XL"
-                                            value={talla}
-                                            onChange={e => setTalla(e.target.value)}
-                                            className=""
-                                        />
+                                        <Select onValueChange={setTalla} value={talla}>
+                                            <SelectTrigger id="tallaCombinacion">
+                                                <SelectValue placeholder="Seleccione una talla" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {tallasComunes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="space-y-1 flex-1">
                                         <label htmlFor="colorCombinacion" className="text-xs font-medium text-gray-600">
                                             Color
                                         </label>
-                                        <Input
-                                            id="colorCombinacion"
-                                            type="text"
-                                            placeholder="Rojo, Azul, Verde"
-                                            value={color}
-                                            onChange={e => setColor(e.target.value)}
-                                            className=""
-                                        />
+                                        <Select onValueChange={handleColorChange} value={color}>
+                                            <SelectTrigger id="colorCombinacion">
+                                                <SelectValue placeholder="Seleccione un color" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {coloresComunes.map(c => <SelectItem key={c.nombre} value={c.nombre}>{c.nombre}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
-                                    <div className="grid mt-1.5">
+                                    <div className="grid w-20">
                                         <label htmlFor="rgbCombinacion" className="text-xs font-medium text-gray-600">
                                             Color RGB
                                         </label>
@@ -899,7 +976,7 @@ export default function CustomThsirtsPage() {
                                         <label className="text-xs font-medium text-gray-600 opacity-0">
                                             Acción
                                         </label>
-                                        <Button type="button" onClick={handleAddCombinacion} className="bg-green-600 text-white h-10">Añadir</Button>
+                                        <Button type="button" onClick={handleAddCombinacion} className="bg-green-600 text-white h-10 -t-10">Añadir</Button>
                                     </div>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
