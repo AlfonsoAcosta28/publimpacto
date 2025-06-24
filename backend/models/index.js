@@ -17,10 +17,14 @@ const Camisa = require('./Camisa');
 const Color = require('./Color');
 const Talla = require('./Talla');
 const PrecioCamisaRango = require('./PrecioCamisaRango');
-const OrdenCamisa = require('./OrdenCamisa');
+// const OrdenCamisa = require('./OrdenCamisa');
 const OrdenItemCamisa = require('./OrdenItemCamisa');
 const PersonalizacionImagen = require('./PersonalizacionImagen');
 const InventarioCamisa = require('./InventarioCamisa');
+const Cup = require('./Cup')
+const InventoryCups = require('./inventoryCup');
+const PrecioCupRango = require('./precioCupRango')
+const OrderItemCup = require('./OrderItemCup');
 
 // Define model associations
 Category.hasMany(Product, { foreignKey: 'category_id' });
@@ -49,18 +53,8 @@ Address.hasMany(Order, { foreignKey: 'address_id', as: 'orders' });
 Product.hasOne(Inventory, { foreignKey: 'product_id', as: 'inventory' });
 Inventory.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
-// Asociaciones de Service
-// Service.hasMany(ServiceOption, { foreignKey: 'service_id', as: 'options' });
-// ServiceOption.belongsTo(Service, { foreignKey: 'service_id' });
-
 Service.hasMany(ServiceImage, { foreignKey: 'service_id', as: 'images' });
 ServiceImage.belongsTo(Service, { foreignKey: 'service_id' });
-
-// Service.hasMany(ServiceInventory, { foreignKey: 'service_id', as: 'inventory' });
-// ServiceInventory.belongsTo(Service, { foreignKey: 'service_id' });
-
-// ServiceOption.hasMany(ServiceOptionValue, { foreignKey: 'service_option_id', as: 'values' });
-// ServiceOptionValue.belongsTo(ServiceOption, { foreignKey: 'service_option_id' });
 
 // Asociaciones de ServiceOrder (cotizaciones)
 User.hasMany(ServiceOrder, { foreignKey: 'user_id', as: 'serviceQuotes' });
@@ -68,9 +62,6 @@ ServiceOrder.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
 Service.hasMany(ServiceOrder, { foreignKey: 'service_id', as: 'quotes' });
 ServiceOrder.belongsTo(Service, { foreignKey: 'service_id', as: 'service' });
-
-// ServiceInventory.hasMany(ServiceOrder, { foreignKey: 'variant_id', as: 'quotes' });
-// ServiceOrder.belongsTo(ServiceInventory, { foreignKey: 'variant_id', as: 'variant' });
 
 // Asociaciones de Camisa
 Camisa.hasMany(Color, { foreignKey: 'id_camisa', as: 'colores' });
@@ -86,14 +77,14 @@ Camisa.hasMany(InventarioCamisa, { foreignKey: 'id_camisa', as: 'inventario' });
 InventarioCamisa.belongsTo(Camisa, { foreignKey: 'id_camisa', as: 'camisa' });
 
 // OrdenCamisa y sus relaciones
-User.hasMany(OrdenCamisa, { foreignKey: 'user_id', as: 'ordenesCamisa' });
-OrdenCamisa.belongsTo(User, { foreignKey: 'user_id', as: 'usuario' });
+// User.hasMany(OrdenCamisa, { foreignKey: 'user_id', as: 'ordenesCamisa' });
+// OrdenCamisa.belongsTo(User, { foreignKey: 'user_id', as: 'usuario' });
 
-Address.hasMany(OrdenCamisa, { foreignKey: 'address_id', as: 'ordenesCamisa' });
-OrdenCamisa.belongsTo(Address, { foreignKey: 'address_id', as: 'direccion' });
+// Address.hasMany(OrdenCamisa, { foreignKey: 'address_id', as: 'ordenesCamisa' });
+// OrdenCamisa.belongsTo(Address, { foreignKey: 'address_id', as: 'direccion' });
 
-OrdenCamisa.hasMany(OrdenItemCamisa, { foreignKey: 'id_orden_camisa', as: 'items' });
-OrdenItemCamisa.belongsTo(OrdenCamisa, { foreignKey: 'id_orden_camisa', as: 'ordenCamisa' });
+// OrdenCamisa.hasMany(OrdenItemCamisa, { foreignKey: 'id_orden_camisa', as: 'items' });
+// OrdenItemCamisa.belongsTo(OrdenCamisa, { foreignKey: 'id_orden_camisa', as: 'ordenCamisa' });
 
 Camisa.hasMany(OrdenItemCamisa, { foreignKey: 'id_camisa', as: 'ordenesItem' });
 OrdenItemCamisa.belongsTo(Camisa, { foreignKey: 'id_camisa', as: 'camisa' });
@@ -112,6 +103,17 @@ InventarioCamisa.belongsTo(Talla, { foreignKey: 'id_talla', as: 'talla' });
 
 Color.hasMany(InventarioCamisa, { foreignKey: 'id_color', as: 'inventario' });
 InventarioCamisa.belongsTo(Color, { foreignKey: 'id_color', as: 'color' });
+
+// Asociación entre InventoryCups y Cup
+InventoryCups.belongsTo(Cup, { foreignKey: 'id_cup', as: 'cup' });
+Cup.hasMany(InventoryCups, { foreignKey: 'id_cup', as: 'inventario' });
+
+// Asociación entre Order y OrderItemCup
+Order.hasMany(OrderItemCup, { foreignKey: 'id_order', as: 'OrderItemCups' });
+OrderItemCup.belongsTo(Order, { foreignKey: 'id_order' });
+
+OrderItemCup.belongsTo(Cup, { foreignKey: 'id_cup', as: 'Cup' });
+Cup.hasMany(OrderItemCup, { foreignKey: 'id_cup', as: 'OrderItemCups' });
 
 // Export models and sequelize instance
 module.exports = {
@@ -137,10 +139,14 @@ module.exports = {
   Color,
   Talla,
   PrecioCamisaRango,
-  OrdenCamisa,
+  // OrdenCamisa,
   OrdenItemCamisa,
   PersonalizacionImagen,
-  InventarioCamisa
+  InventarioCamisa,
+  Cup,
+  InventoryCups,
+  PrecioCupRango,
+  OrderItemCup
 };
 
 

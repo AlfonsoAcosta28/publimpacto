@@ -13,17 +13,32 @@ import { orderService } from "@/services/orderService"
 import { toast } from "sonner"
 import { getStatusInfo } from "@/utils/OrderStatus"
 
-interface OrderItem {
-  id: number
-  product_id: number
-  cantidad: number
-  precio_unitario: number
-  product: {
+type OrderItem =
+  | {
+    type: 'product'
     id: number
-    title: string
-    image: string
+    product_id: number
+    cantidad: number
+    precio_unitario: number
+    product: {
+      id: number
+      title: string
+      image: string
+    }
   }
-}
+  | {
+    type: 'cup'
+    id: number
+    cup_id: number
+    cantidad: number
+    precio_unitario: number
+    image: string
+    cup: {
+      id: number
+      name: string
+      descripcion: string
+    } | null
+  }
 
 interface Order {
   id: number
@@ -81,7 +96,7 @@ export default function OrdersPage() {
     setCurrentPage(page)
   }
 
-  
+
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
@@ -103,11 +118,11 @@ export default function OrdersPage() {
     const maxVisiblePages = 5
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2))
     let endPage = Math.min(pagination.totalPages, startPage + maxVisiblePages - 1)
-    
+
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1)
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i)
     }
@@ -145,8 +160,8 @@ export default function OrdersPage() {
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input 
-                    placeholder="Buscar por número de pedido..." 
+                  <Input
+                    placeholder="Buscar por número de pedido..."
                     className="pl-10"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -208,25 +223,48 @@ export default function OrdersPage() {
                   <div className="space-y-4">
                     {order.items.map((item) => (
                       <div key={item.id} className="flex items-center gap-4">
-                        <Image
-                          src={item.product.image || "/placeholder.svg"}
-                          alt={item.product.title}
-                          width={80}
-                          height={80}
-                          className="w-20 h-20 object-cover rounded-lg"
-                        />
-                        <div className="flex-1">
-                          <h4 className="font-medium">{item.product.title}</h4>
-                          <p className="text-gray-600">Cantidad: {item.cantidad}</p>
-                          <p className="text-sm text-gray-500">Precio unitario: ${Number(item.precio_unitario).toFixed(2)}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold">${(Number(item.precio_unitario) * Number(item.cantidad)).toFixed(2)}</p>
-                        </div>
+                        {item.type === 'product' ? (
+                          <>
+                            <Image
+                              src={item.product.image || "/placeholder.svg"}
+                              alt={item.product.title}
+                              width={80}
+                              height={80}
+                              className="w-20 h-20 object-cover rounded-lg"
+                            />
+                            <div className="flex-1">
+                              <h4 className="font-medium">{item.product.title}</h4>
+                              <p className="text-gray-600">Cantidad: {item.cantidad}</p>
+                              <p className="text-sm text-gray-500">Precio unitario: ${Number(item.precio_unitario).toFixed(2)}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold">${(Number(item.precio_unitario) * Number(item.cantidad)).toFixed(2)}</p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Image
+                              src={item.image || "/placeholder.svg"}
+                              alt={item.cup?.name || 'Taza personalizada'}
+                              width={80}
+                              height={80}
+                              className="w-auto h-20  rounded-lg"
+                            />
+                            <div className="flex-1">
+                              <h4 className="font-medium">Taza personalizada{item.cup?.name ? `: ${item.cup.name}` : ''}</h4>
+                              {item.cup?.descripcion && <p className="text-gray-600">{item.cup.descripcion}</p>}
+                              <p className="text-gray-600">Cantidad: {item.cantidad}</p>
+                              <p className="text-sm text-gray-500">Precio unitario: ${Number(item.precio_unitario).toFixed(2)}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold">${(Number(item.precio_unitario) * Number(item.cantidad)).toFixed(2)}</p>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>
-                  
+
                   {/* Order Summary */}
                   <div className="mt-6 pt-4 border-t border-gray-200">
                     <div className="flex justify-between items-center">
@@ -254,15 +292,15 @@ export default function OrdersPage() {
         {pagination.totalPages > 1 && (
           <div className="flex justify-center mt-8">
             <div className="flex items-center space-x-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 disabled={!pagination.hasPrevPage}
                 onClick={() => handlePageChange(currentPage - 1)}
               >
                 Anterior
               </Button>
-              
+
               {getPageNumbers().map((pageNum) => (
                 <Button
                   key={pageNum}
@@ -273,10 +311,10 @@ export default function OrdersPage() {
                   {pageNum}
                 </Button>
               ))}
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
+
+              <Button
+                variant="outline"
+                size="sm"
                 disabled={!pagination.hasNextPage}
                 onClick={() => handlePageChange(currentPage + 1)}
               >
@@ -295,8 +333,8 @@ export default function OrdersPage() {
                 {pagination.totalOrders === 0 ? "No tienes pedidos aún" : "No se encontraron pedidos"}
               </h3>
               <p className="text-gray-500 mb-6">
-                {pagination.totalOrders === 0 
-                  ? "¡Explora nuestro catálogo y realiza tu primera compra!" 
+                {pagination.totalOrders === 0
+                  ? "¡Explora nuestro catálogo y realiza tu primera compra!"
                   : "Intenta ajustar los filtros de búsqueda"
                 }
               </p>

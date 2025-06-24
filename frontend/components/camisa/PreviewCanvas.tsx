@@ -48,21 +48,21 @@ export default function PreviewCanvas({
                     <div
                         style={{
                             fontFamily: element.style?.fontFamily || 'Arial',
-                            fontSize: `${element.style?.fontSize || 16}px`,
+                            fontSize: `${element.style?.fontSize || 20}px`,
                             color: element.style?.color || '#000000',
                             fontWeight: element.style?.isBold ? 'bold' : 'normal',
                             fontStyle: element.style?.isItalic ? 'italic' : 'normal',
                             textDecoration: element.style?.isUnderline ? 'underline' : 'none',
                             lineHeight: element.style?.lineHeight || 1.5,
                             position: 'relative',
-                            padding: '4px',
+                            padding: '6px',
                             userSelect: 'none',
                             backgroundColor: element.style?.backgroundColor || 'transparent',
                             borderRadius: '4px',
                             whiteSpace: 'normal',
                             width: element.style?.width || 'auto',
-                            minWidth: '50px',
-                            maxWidth: '300px',
+                            minWidth: '80px',
+                            maxWidth: '400px',
                             wordWrap: 'break-word',
                             overflowWrap: 'break-word',
                             wordBreak: 'break-word',
@@ -83,12 +83,12 @@ export default function PreviewCanvas({
                                     e.preventDefault()
                                     setIsScaling(true)
                                     const startX = e.clientX
-                                    const startWidth = element.style?.width || 200
-                                    
+                                    const startWidth = element.style?.width || 250
+
                                     const handleMouseMove = (moveEvent: MouseEvent) => {
                                         moveEvent.preventDefault()
                                         const deltaX = moveEvent.clientX - startX
-                                        const newWidth = Math.max(50, Math.min(300, startWidth + deltaX))
+                                        const newWidth = Math.max(80, Math.min(400, startWidth + deltaX))
                                         onElementUpdate(element.id, {
                                             style: {
                                                 ...element.style,
@@ -96,13 +96,13 @@ export default function PreviewCanvas({
                                             }
                                         })
                                     }
-                                    
+
                                     const handleMouseUp = () => {
                                         setIsScaling(false)
                                         document.removeEventListener('mousemove', handleMouseMove)
                                         document.removeEventListener('mouseup', handleMouseUp)
                                     }
-                                    
+
                                     document.addEventListener('mousemove', handleMouseMove)
                                     document.addEventListener('mouseup', handleMouseUp)
                                 }}
@@ -117,13 +117,12 @@ export default function PreviewCanvas({
                         src={element.content}
                         alt="Elemento"
                         style={{
-                            width: '100%', // Make image fill its motion container
-                            height: '100%',
-                            maxWidth: '200px',
-                            maxHeight: '200px',
+                            width: element.style?.width ? `${element.style.width}px` : '150px',
+                            height: element.style?.height ? `${element.style.height}px` : '150px',
+                            maxWidth: '300px',
+                            maxHeight: '300px',
                             objectFit: 'contain',
                             position: 'relative',
-                            // padding: '4px',
                             userSelect: 'none'
                         }}
                     />
@@ -132,14 +131,14 @@ export default function PreviewCanvas({
             case 'icon':
                 content = (
                     <div style={{
-                        fontSize: '24px',
+                        fontSize: '32px',
                         position: 'relative',
-                        padding: '4px',
+                        padding: '8px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        minWidth: '40px',
-                        minHeight: '40px',
+                        minWidth: '60px',
+                        minHeight: '60px',
                         userSelect: 'none'
                     }}>
                         {element.content}
@@ -157,32 +156,84 @@ export default function PreviewCanvas({
                 dragMomentum={false}
                 dragConstraints={containerRef}
                 dragElastic={0}
-                onDrag={(e, info) => {
+                initial={{ x: element.position.x, y: element.position.y }}
+                animate={{ x: element.position.x, y: element.position.y }}
+                onDragStart={(event, info) => {
+                    console.log("Inicio del drag");
+                    console.log("Posición inicial:", info.point);
+                }}
+                // onDragEnd={(event, info) => {
+                //     if (!containerRef.current) return;
+                //     const containerBounds = containerRef.current.getBoundingClientRect();
+                //     console.log("info.point", info.point);
+                //     console.log("containerBounds.left", containerBounds.left);
+                //     console.log("containerBounds.top", containerBounds.top);
+
+                //     console.log("containerBounds " + containerBounds)
+
+                //     const relativeX = info.point.x - containerBounds.left;
+                //     const relativeY = info.point.y - containerBounds.top;
+
+                //     console.log("relativeX " + relativeX)
+                //     console.log("relativeY " + relativeY)
+
+                //     // Obtener las dimensiones reales del elemento DOM
+                //     const elementDOM = event.target as HTMLElement;
+                //     const elementRect = elementDOM.getBoundingClientRect();
+                //     const elementWidth = elementRect.width;
+                //     const elementHeight = elementRect.height;
+
+                //     console.log("elementWidth " + elementWidth)
+                //     console.log("elementHeight " + elementHeight)
+
+                //     const clampedX = Math.max(0, Math.min(containerBounds.width - elementWidth, relativeX));
+                //     const clampedY = Math.max(0, Math.min(containerBounds.height - elementHeight, relativeY));
+
+                //     console.log("Relative drop position:", { x: clampedX, y: clampedY });
+                //     console.log("typeof elementWidth", typeof elementWidth, elementWidth);
+
+                //     onElementUpdate(element.id, {
+                //         position: {
+                //             x: clampedX,
+                //             y: clampedY
+                //         }
+                //     });
+                // }}
+                onDragEnd={(event, info) => {
+                    const newX = element.position.x + info.offset.x;
+                    const newY = element.position.y + info.offset.y;
+
                     onElementUpdate(element.id, {
                         position: {
-                            x: element.position.x + info.delta.x,
-                            y: element.position.y + info.delta.y
+                            x: newX,
+                            y: newY
                         }
-                    })
+                    });
                 }}
+
+
                 onClick={(e) => {
-                    e.stopPropagation()
-                    onElementSelect(element.id)
+                    e.stopPropagation();
+                    onElementSelect(element.id);
                 }}
                 style={{
                     position: 'absolute',
-                    left: element.position.x,
-                    top: element.position.y,
+                    left: 0,
+                    top: 0,
                     rotate: element.rotation || 0,
                     scale: element.scale || 1,
                     zIndex: isSelected ? 100 : ((element as DesignElement).type === 'background' ? 1 : 10),
                     touchAction: 'none',
-                    width: element.type === 'image' || element.type === 'icon' ? (element.style?.width || 100) : 'auto',
-                    height: element.type === 'image' || element.type === 'icon' ? (element.style?.height || 100) : 'auto',
+                    ...(element.type === 'text' && {
+                        width: element.style?.width ? `${element.style.width}px` : 'auto',
+                        height: element.style?.height ? `${element.style.height}px` : 'auto'
+                    })
                 }}
                 className="touch-none"
             >
+
                 <div className="relative">
+
                     {content}
                     {isSelected && (
                         <>
@@ -197,7 +248,7 @@ export default function PreviewCanvas({
 
                             {element.type !== 'text' && (
                                 <div className="absolute inset-0 hover:cursor-nw-resize">
-                                    <div 
+                                    <div
                                         className="absolute top-0 left-0 w-3 h-3 bg-blue-500 rounded transform -translate-x-1/2 -translate-y-1/2 hover:cursor-nw-resize"
                                         onMouseDown={(e) => {
                                             e.stopPropagation()
@@ -205,25 +256,25 @@ export default function PreviewCanvas({
                                             const startX = e.clientX
                                             const startY = e.clientY
                                             const startScale = element.scale || 1
-                                            
+
                                             const handleMouseMove = (moveEvent: MouseEvent) => {
                                                 const deltaX = moveEvent.clientX - startX
                                                 const deltaY = moveEvent.clientY - startY
                                                 const newScale = Math.max(0.1, Math.min(3, startScale + (deltaX + deltaY) / 200))
                                                 onElementUpdate(element.id, { scale: newScale })
                                             }
-                                            
+
                                             const handleMouseUp = () => {
                                                 setIsScaling(false)
                                                 document.removeEventListener('mousemove', handleMouseMove)
                                                 document.removeEventListener('mouseup', handleMouseUp)
                                             }
-                                            
+
                                             document.addEventListener('mousemove', handleMouseMove)
                                             document.addEventListener('mouseup', handleMouseUp)
                                         }}
                                     />
-                                    <div 
+                                    <div
                                         className="absolute top-0 right-0 w-3 h-3 bg-blue-500 rounded transform translate-x-1/2 -translate-y-1/2 hover:cursor-ne-resize"
                                         onMouseDown={(e) => {
                                             e.stopPropagation()
@@ -231,25 +282,25 @@ export default function PreviewCanvas({
                                             const startX = e.clientX
                                             const startY = e.clientY
                                             const startScale = element.scale || 1
-                                            
+
                                             const handleMouseMove = (moveEvent: MouseEvent) => {
                                                 const deltaX = moveEvent.clientX - startX
                                                 const deltaY = moveEvent.clientY - startY
                                                 const newScale = Math.max(0.1, Math.min(3, startScale + (deltaX + deltaY) / 200))
                                                 onElementUpdate(element.id, { scale: newScale })
                                             }
-                                            
+
                                             const handleMouseUp = () => {
                                                 setIsScaling(false)
                                                 document.removeEventListener('mousemove', handleMouseMove)
                                                 document.removeEventListener('mouseup', handleMouseUp)
                                             }
-                                            
+
                                             document.addEventListener('mousemove', handleMouseMove)
                                             document.addEventListener('mouseup', handleMouseUp)
                                         }}
                                     />
-                                    <div 
+                                    <div
                                         className="absolute bottom-0 left-0 w-3 h-3 bg-blue-500 rounded transform -translate-x-1/2 translate-y-1/2 hover:cursor-sw-resize"
                                         onMouseDown={(e) => {
                                             e.stopPropagation()
@@ -257,25 +308,25 @@ export default function PreviewCanvas({
                                             const startX = e.clientX
                                             const startY = e.clientY
                                             const startScale = element.scale || 1
-                                            
+
                                             const handleMouseMove = (moveEvent: MouseEvent) => {
                                                 const deltaX = moveEvent.clientX - startX
                                                 const deltaY = moveEvent.clientY - startY
                                                 const newScale = Math.max(0.1, Math.min(3, startScale + (deltaX + deltaY) / 200))
                                                 onElementUpdate(element.id, { scale: newScale })
                                             }
-                                            
+
                                             const handleMouseUp = () => {
                                                 setIsScaling(false)
                                                 document.removeEventListener('mousemove', handleMouseMove)
                                                 document.removeEventListener('mouseup', handleMouseUp)
                                             }
-                                            
+
                                             document.addEventListener('mousemove', handleMouseMove)
                                             document.addEventListener('mouseup', handleMouseUp)
                                         }}
                                     />
-                                    <div 
+                                    <div
                                         className="absolute bottom-0 right-0 w-3 h-3 bg-blue-500 rounded transform translate-x-1/2 translate-y-1/2 hover:cursor-se-resize"
                                         onMouseDown={(e) => {
                                             e.stopPropagation()
@@ -283,20 +334,20 @@ export default function PreviewCanvas({
                                             const startX = e.clientX
                                             const startY = e.clientY
                                             const startScale = element.scale || 1
-                                            
+
                                             const handleMouseMove = (moveEvent: MouseEvent) => {
                                                 const deltaX = moveEvent.clientX - startX
                                                 const deltaY = moveEvent.clientY - startY
                                                 const newScale = Math.max(0.1, Math.min(3, startScale + (deltaX + deltaY) / 200))
                                                 onElementUpdate(element.id, { scale: newScale })
                                             }
-                                            
+
                                             const handleMouseUp = () => {
                                                 setIsScaling(false)
                                                 document.removeEventListener('mousemove', handleMouseMove)
                                                 document.removeEventListener('mouseup', handleMouseUp)
                                             }
-                                            
+
                                             document.addEventListener('mousemove', handleMouseMove)
                                             document.addEventListener('mouseup', handleMouseUp)
                                         }}
@@ -325,7 +376,7 @@ export default function PreviewCanvas({
                                 >
                                     <RotateCw className="w-4 h-4" />
                                 </button>
-                                
+
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation()
@@ -361,7 +412,7 @@ export default function PreviewCanvas({
                 onClick={handleContainerClick}
             >
                 {elements.filter(el => el.type !== 'background').map(renderElement)}
-                
+
             </div>
         </div>
     )

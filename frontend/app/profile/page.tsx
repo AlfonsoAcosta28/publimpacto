@@ -16,20 +16,52 @@ import { useAuth } from "@/contexts/AuthContext"
 import AddressManager from "@/components/AddressManager"
 import { getStatusInfo } from "@/utils/OrderStatus"
 
+type OrderItem =
+  | {
+    type: 'product'
+    id: number
+    product_id: number
+    cantidad: number
+    precio_unitario: number
+    product: {
+      id: number
+      title: string
+      image: string
+    }
+  }
+  | {
+    type: 'cup'
+    id: number
+    cup_id: number
+    cantidad: number
+    precio_unitario: number
+    image: string
+    cup: {
+      id: number
+      name: string
+      descripcion: string
+    } | null
+  }
+
 interface Order {
   id: number
   total: number
   envio: number
   status: string
   created_at: string
-  items: Array<{
-    id: number
-    cantidad: number
-    product: {
-      title: string
-    }
-  }>
+  telefono_contacto: string
+  address: {
+    nombre: string
+    calle: string
+    numero_calle: string
+    colonia: string
+    ciudad: string
+    estado: string
+    codigo_postal: string
+  }
+  items: OrderItem[]
 }
+
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
@@ -238,7 +270,15 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   {orders.map((order) => {
                     const statusInfo = getStatusInfo(order.status)
-                    const itemNames = order.items.map(item => item.product.title).join(", ")
+                    const itemNames = order.items.map(item => {
+                      if (item.type === 'product') {
+                        return item.product.title
+                      } else if (item.type === 'cup') {
+                        return `Taza personalizada${item.cup?.name ? ': ' + item.cup.name : ''}`
+                      } else {
+                        return ''
+                      }
+                    }).join(", ")
                     
                     return (
                       <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">

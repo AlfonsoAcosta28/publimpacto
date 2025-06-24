@@ -10,6 +10,7 @@ interface PreviewSectionProps {
     onElementSelect: (id: string | null) => void;
     onElementUpdate: (id: string, updates: Partial<DesignElement>) => void;
     onElementDelete: (id: string) => void;
+    containerRef?: React.RefObject<HTMLDivElement>;
 }
 
 export default function PreviewSection({
@@ -18,8 +19,9 @@ export default function PreviewSection({
     onElementSelect,
     onElementUpdate,
     onElementDelete,
+    containerRef
 }: PreviewSectionProps) {
-    const canvasRef = useRef<HTMLDivElement>(null)
+    const canvasRef = containerRef || useRef<HTMLDivElement>(null)
 
     const selectedElementData = selectedElement ? elements.find(el => el.id === selectedElement) : null
 

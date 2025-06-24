@@ -25,10 +25,13 @@ const camisaRoutes = require('./routes/camisaRoutes');
 const colorRoutes = require('./routes/colorRoutes');
 const tallaRoutes = require('./routes/tallaRoutes');
 const precioCamisaRangoRoutes = require('./routes/precioCamisaRangoRoutes');
-const ordenCamisaRoutes = require('./routes/ordenCamisaRoutes');
+// const ordenCamisaRoutes = require('./routes/ordenCamisaRoutes');
 const ordenItemCamisaRoutes = require('./routes/ordenItemCamisaRoutes');
 const personalizacionImagenRoutes = require('./routes/personalizacionImagenRoutes');
 const inventarioCamisaRoutes = require('./routes/inventarioCamisaRoutes');
+const cupRoutes = require('./routes/cupRoutes');
+const inventoryCupRoutes = require('./routes/inventoryCupRoutes')
+const preciosCupRangoroutes = require('./routes/precioCupRangoRoutes')
 
 const app = express();
 const PORT = process.env.PORT || 5000; 
@@ -40,8 +43,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -87,10 +90,13 @@ app.use('/api/camisas', camisaRoutes);
 app.use('/api/colores', colorRoutes);
 app.use('/api/tallas', tallaRoutes);
 app.use('/api/precios-camisa', precioCamisaRangoRoutes);
-app.use('/api/ordenes-camisa', ordenCamisaRoutes);
+// app.use('/api/ordenes-camisa', ordenCamisaRoutes);
 app.use('/api/ordenes-item-camisa', ordenItemCamisaRoutes);
 app.use('/api/personalizaciones-imagen', personalizacionImagenRoutes);
 app.use('/api/inventario-camisa', inventarioCamisaRoutes);
+app.use('/api/cup', cupRoutes)
+app.use('/api/inventario-cup', inventoryCupRoutes)
+app.use('/api/precios-cup', preciosCupRangoroutes)
 
 // Error handler
 app.use((err, req, res, next) => {

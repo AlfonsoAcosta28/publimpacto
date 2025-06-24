@@ -24,6 +24,7 @@ import {
 import { GrServices } from "react-icons/gr";
 import { MdCategory } from "react-icons/md";
 import { FaTshirt } from "react-icons/fa";
+import { BsCupHotFill } from "react-icons/bs";
 
 
 import { Button } from "@/components/ui/button"
@@ -52,6 +53,7 @@ export default function DashboardLayout({
     { path: '/products', label: 'Productos', icon: Package },
     { path: '/services', label: 'Servicios', icon: GrServices },
     { path: '/custom_tshirt', label: 'Camisas', icon: FaTshirt },
+    { path: '/custom_cup', label: 'Tazas', icon: BsCupHotFill },
     { path: '/service-orders', label: 'Órdenes de Servicios', icon: ShoppingBag },
     { path: '/categories', label: 'Categorías', icon: MdCategory },
     { path: '/inventory', label:'Inventario', icon: PackageOpen },

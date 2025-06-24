@@ -26,10 +26,11 @@ export default function Cup3D({ img, posicion, elements }: Cup3DProps) {
     }
 
     return (
-        <div className="h-[500px] rounded-lg shadow-lg p-6 bg-white">
+
             <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[10, 10, 10]} intensity={1} />
+
                 <Cup
                     key={elements.length}
                     logo={img || '/logo.png'}
@@ -37,6 +38,7 @@ export default function Cup3D({ img, posicion, elements }: Cup3DProps) {
                     elements={elements}
                     canvasRef={(window as any).previewCanvasRef}
                 />
+
                 <OrbitControls
                     enablePan={true}
                     enableZoom={true}
@@ -46,6 +48,6 @@ export default function Cup3D({ img, posicion, elements }: Cup3DProps) {
                 />
                 <Environment preset="studio" />
             </Canvas>
-        </div>
+     
     )
 } 

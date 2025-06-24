@@ -19,7 +19,7 @@ const transporter = nodemailer.createTransport({
 const sendVerificationEmail = async (user, verificationLink) => {
   // Nombre de la empresa para la plantilla
   const companyName = 'PUBLIMPACTO';
-  const companyColor = '#E60076';
+  const companyColor = '#e7722f';
   
   // Plantilla HTML para el correo
   const htmlTemplate = `

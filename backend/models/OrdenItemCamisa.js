@@ -3,10 +3,10 @@ const sequelize = require('../config/database');
 
 const OrdenItemCamisa = sequelize.define('OrdenItemCamisa', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  id_orden_camisa: {
+  id_order: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: { model: 'orden_camisa', key: 'id' }
+    references: { model: 'orders', key: 'id' } // CORRECTO
   },
   id_camisa: {
     type: DataTypes.INTEGER,

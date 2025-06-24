@@ -59,7 +59,7 @@ export default function VerifyEmailPage() {
   }, [token, login])
 
   const handleRedirect = () => {
-    router.push(status === "success" ? "/perfil" : "/auth")
+    router.push(status === "success" ? "/profile" : "/auth")
   }
 
   return (

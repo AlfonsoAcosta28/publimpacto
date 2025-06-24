@@ -1,12 +1,19 @@
 const Order = require('../models/Order');
 const OrderItem = require('../models/OrderItem');
+const OrderItemCup = require('../models/OrderItemCup');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const ProductImage = require('../models/ProductImage');
 const Address = require('../models/Address');
 const Inventory = require('../models/Inventory');
+const InventoryCup = require('../models/inventoryCup');
+const Cup = require('../models/Cup');
+const PrecioCupRango = require('../models/precioCupRango');
 const ShippingPrice = require('../models/shippingPrice');
 const sequelize = require('../config/database');
+const fs = require('fs');
+const path = require('path');
+const { Op } = require('sequelize');
 
 exports.getAllOrders = async (req, res) => {
     try {
@@ -208,6 +215,17 @@ exports.getUserOrders = async (req, res) => {
                             ]
                         }
                     ]
+                },
+                {
+                    model: OrderItemCup,
+                    as: 'OrderItemCups',
+                    include: [
+                        {
+                            model: Cup,
+                            as: 'Cup',
+                            attributes: ['id', 'name', 'descripcion']
+                        }
+                    ]
                 }
             ],
             order: [['created_at', 'DESC']],
@@ -215,23 +233,11 @@ exports.getUserOrders = async (req, res) => {
             offset: offset
         });
 
-        // Transformar la respuesta para incluir la imagen en el formato esperado
-        const transformedOrders = orders.map(order => ({
-            ...order.toJSON(),
-            address: order.Address ? {
-                id: order.Address.id,
-                nombre: order.Address.nombre,
-                calle: order.Address.calle || '',
-                numero_calle: order.Address.numero_calle || '',
-                colonia: order.Address.colonia || '',
-                ciudad: order.Address.ciudad || '',
-                estado: order.Address.estado || '',
-                codigo_postal: order.Address.codigo_postal || '',
-                referencias: order.Address.referencias || '',
-                descripcion_casa: order.Address.descripcion_casa || '',
-                horario_preferido: order.Address.horario_preferido || ''
-            } : null,
-            items: order.OrderItems.map(item => ({
+        // Transformar la respuesta para incluir productos y tazas en el mismo array
+        const transformedOrders = orders.map(order => {
+            // Productos normales
+            const productItems = (order.OrderItems || []).map(item => ({
+                type: 'product',
                 id: item.id,
                 product_id: item.product_id,
                 cantidad: item.cantidad,
@@ -243,8 +249,41 @@ exports.getUserOrders = async (req, res) => {
                         ? `${baseUrl}${item.Product.ProductImages[0].image_url}`
                         : '/placeholder.png'
                 }
-            }))
-        }));
+            }));
+            // Tazas personalizadas
+            const cupItems = (order.OrderItemCups || []).map(item => ({
+                type: 'cup',
+                id: item.id,
+                cup_id: item.id_cup,
+                cantidad: item.cantidad,
+                precio_unitario: item.precio_unitario,
+                image: item.image_url ? `${baseUrl}${item.image_url}` : '/placeholder.png',
+                cup: item.Cup ? {
+                    id: item.Cup.id,
+                    name: item.Cup.name,
+                    descripcion: item.Cup.descripcion
+                } : null
+            }));
+            // Unimos ambos arrays
+            const allItems = [...productItems, ...cupItems];
+            return {
+                ...order.toJSON(),
+                address: order.Address ? {
+                    id: order.Address.id,
+                    nombre: order.Address.nombre,
+                    calle: order.Address.calle || '',
+                    numero_calle: order.Address.numero_calle || '',
+                    colonia: order.Address.colonia || '',
+                    ciudad: order.Address.ciudad || '',
+                    estado: order.Address.estado || '',
+                    codigo_postal: order.Address.codigo_postal || '',
+                    referencias: order.Address.referencias || '',
+                    descripcion_casa: order.Address.descripcion_casa || '',
+                    horario_preferido: order.Address.horario_preferido || ''
+                } : null,
+                items: allItems
+            };
+        });
 
         const totalPages = Math.ceil(totalOrders / limit);
         const hasNextPage = page < totalPages;
@@ -267,8 +306,182 @@ exports.getUserOrders = async (req, res) => {
     }
 };
 
+exports.createOrderCup = async (req, res) => {
+    console.log("body 1 ", req.body);
+    console.log("files ", req.files);
+    const transaction = await sequelize.transaction();
+
+    try {
+        const userId = req.user.id;
+        
+        // Parsear los datos JSON del FormData
+        const items = JSON.parse(req.body.items);
+        const address_id = parseInt(req.body.address_id);
+        const telefono_contacto = req.body.telefono_contacto;
+
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            await transaction.rollback();
+            return res.status(400).json({ message: 'Debe proporcionar al menos una taza para el pedido' });
+        }
+
+        if (!req.files || !req.files['cupImage']) {
+            await transaction.rollback();
+            return res.status(400).json({ message: 'Debe proporcionar la imagen personalizada' });
+        }
+
+        if (!address_id) {
+            await transaction.rollback();
+            return res.status(400).json({ message: 'Debe proporcionar una dirección de entrega' });
+        }
+
+        // Verificar que la dirección exista y pertenezca al usuario
+        const address = await Address.findOne({
+            where: {
+                id: address_id,
+                user_id: userId
+            }
+        });
+
+        if (!address) {
+            await transaction.rollback();
+            return res.status(404).json({ message: 'Dirección de entrega no encontrada o no pertenece al usuario' });
+        }
+
+        // Validate and get cups
+        const cupIds = items.map(item => item.id_cup);
+        const cups = await Cup.findAll({
+            where: { id: cupIds }
+        });
+
+        if (cups.length !== cupIds.length) {
+            await transaction.rollback();
+            return res.status(400).json({ message: 'Algunas tazas no existen' });
+        }
+
+        // Verificar disponibilidad en inventario
+        const inventoryItems = await InventoryCup.findAll({
+            where: { id_cup: cupIds }
+        });
+
+        for (const item of items) {
+            const inventory = inventoryItems.find(inv => inv.id_cup === item.id_cup);
+            if (!inventory) {
+                await transaction.rollback();
+                return res.status(400).json({ message: `No hay inventario disponible para la taza ID: ${item.id_cup}` });
+            }
+
+            const availableQuantity = inventory.stock - inventory.reserved_quantity;
+            if (availableQuantity < item.cantidad) {
+                await transaction.rollback();
+                return res.status(400).json({ message: `Stock insuficiente para la taza ID: ${item.id_cup}. Disponible: ${availableQuantity}, Solicitado: ${item.cantidad}` });
+            }
+        }
+
+        // Calculate subtotal
+        let subtotal = 0;
+        for (const item of items) {
+            // Obtener precio según rango de cantidad
+            const precioRango = await PrecioCupRango.findOne({
+                where: {
+                    id_cup: item.id_cup,
+                    min_cantidad: { [Op.lte]: item.cantidad },
+                    max_cantidad: { [Op.gte]: item.cantidad }
+                }
+            });
+
+            let precioUnitario = 15.99; // Precio base por defecto
+            if (precioRango) {
+                precioUnitario = parseFloat(precioRango.precio_unitario);
+            }
+
+            subtotal += precioUnitario * item.cantidad;
+        }
+
+        // Calculate shipping
+        const shippingConfig = await ShippingPrice.findOne({ 
+            where: { activo: true },
+            order: [['created_at', 'DESC']],
+            transaction 
+        });
+        let shippingCost = 0;
+        if (shippingConfig) {
+            const freeShippingMin = parseFloat(shippingConfig.precioMinimoVenta);
+            if (subtotal < freeShippingMin) {
+                shippingCost = parseFloat(shippingConfig.valorEnvio);
+            }
+        }
+
+        const total = subtotal + shippingCost;
+
+        // Create order
+        const order = await Order.create({
+            user_id: userId,
+            address_id,
+            total: total,
+            envio: shippingCost,
+            status: 'pendiente',
+            telefono_contacto: telefono_contacto || address.telefono_contacto
+        }, { transaction });
+
+        // Obtener la URL de la imagen subida (solo después de validar todo)
+        const imageUrl = `/uploads/cups/${req.files['cupImage'][0].filename}`;
+
+        // Create order items and update inventory
+        const orderItems = [];
+        for (const item of items) {
+            // Obtener precio según rango de cantidad
+            const precioRango = await PrecioCupRango.findOne({
+                where: {
+                    id_cup: item.id_cup,
+                    min_cantidad: { [Op.lte]: item.cantidad },
+                    max_cantidad: { [Op.gte]: item.cantidad }
+                }
+            });
+
+            let precioUnitario = 15.99; // Precio base por defecto
+            if (precioRango) {
+                precioUnitario = parseFloat(precioRango.precio_unitario);
+            }
+
+            const subtotalItem = precioUnitario * item.cantidad;
+            
+            const orderItem = await OrderItemCup.create({
+                id_order: order.id,
+                id_cup: item.id_cup,
+                image_url: imageUrl,
+                cantidad: item.cantidad,
+                precio_unitario: precioUnitario,
+                subtotal: subtotalItem
+            }, { transaction });
+
+            orderItems.push(orderItem);
+
+            // Update reserved quantity in inventory
+            const inventory = inventoryItems.find(inv => inv.id_cup === item.id_cup);
+            await inventory.increment('reserved_quantity', { 
+                by: item.cantidad,
+                transaction 
+            });
+        }
+
+        await transaction.commit();
+
+        res.status(201).json({
+            message: 'Pedido de taza personalizada creado exitosamente',
+            order: {
+                ...order.toJSON(),
+                items: orderItems
+            }
+        });
+    } catch (error) {
+        await transaction.rollback();
+        res.status(500).json({ message: 'Error al crear el pedido de taza personalizada', error: error.message });
+        console.log(error);
+    }
+};
+
 exports.createOrder = async (req, res) => {
-    console.log("body ")
+    console.log("body 2")
     console.log(req.body)
     const transaction = await sequelize.transaction();
 

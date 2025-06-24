@@ -11,6 +11,14 @@ export const orderService = {
     const response = await api.post('/orders', orderData);
     return response.data;
   },
+  createOrderCup: async (formData) => {
+    const response = await api.post('/orders/cup', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
   
 };
 

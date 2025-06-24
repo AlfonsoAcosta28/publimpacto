@@ -1,37 +1,30 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const OrdenCamisa = sequelize.define('OrdenCamisa', {
+const OrderItemCup = sequelize.define('OrderItemCup', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  user_id: {
+  id_order: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: { model: 'users', key: 'id' }
+    references: { model: 'orders', key: 'id' }
   },
-  address_id: {
+  id_cup: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: { model: 'addresses', key: 'id' }
+    references: { model: 'cups', key: 'id' }
   },
-  telefono_contacto: {
-    type: DataTypes.STRING(20),
-    allowNull: true
-  },
-  envio: {
-    type: DataTypes.DECIMAL(10,2),
+  image_url: {
+    type: DataTypes.STRING(255),
     allowNull: false
   },
-  total: { type: DataTypes.DECIMAL(10,2), allowNull: false },
-  status: {
-    type: DataTypes.ENUM('pendiente', 'procesando', 'enviado', 'entregado', 'cancelado'),
-    defaultValue: 'pendiente',
-    allowNull: false
-  },
+  cantidad: { type: DataTypes.INTEGER, allowNull: false },
+  precio_unitario: { type: DataTypes.DECIMAL(10,2), allowNull: false },
+  subtotal: { type: DataTypes.DECIMAL(10,2), allowNull: false },
   created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   deleted_at: { type: DataTypes.DATE, allowNull: true }
 }, {
-  tableName: 'orden_camisa',
+  tableName: 'orden_item_cup',
   timestamps: true,
   createdAt: 'created_at',
   updatedAt: 'updated_at',
@@ -39,4 +32,4 @@ const OrdenCamisa = sequelize.define('OrdenCamisa', {
   deletedAt: 'deleted_at'
 });
 
-module.exports = OrdenCamisa; 
+module.exports = OrderItemCup; 
