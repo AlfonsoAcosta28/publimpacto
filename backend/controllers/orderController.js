@@ -17,16 +17,10 @@ const { Op } = require('sequelize');
 
 exports.getAllOrders = async (req, res) => {
     try {
-        // Obtener la URL base
         const baseUrl = `${req.protocol}://${req.get('host')}`;
 
         const orders = await Order.findAll({
             include: [
-                {
-                    model: User,
-                    as: 'User',
-                    attributes: ['id', 'nombre', 'correo', 'telefono']
-                },
                 {
                     model: Address,
                     as: 'Address',
@@ -55,18 +49,40 @@ exports.getAllOrders = async (req, res) => {
                             ]
                         }
                     ]
+                },
+                {
+                    model: OrderItemCup,
+                    as: 'OrderItemCups',
+                    include: [
+                        {
+                            model: Cup,
+                            as: 'Cup',
+                            attributes: ['id', 'name', 'descripcion']
+                        }
+                    ]
                 }
             ],
             order: [['created_at', 'DESC']]
         });
 
-        // Transformar la respuesta para incluir la imagen en el formato esperado
         const transformedOrders = orders.map(order => {
+            const orderJSON = order.toJSON();
+
             return {
-                ...order.toJSON(),
-                user: order.User,
-                address: order.Address,
-                items: order.OrderItems.map(item => ({
+                id: orderJSON.id,
+                user_id: orderJSON.user_id,
+                address_id: orderJSON.address_id,
+                total: orderJSON.total,
+                status: orderJSON.status,
+                telefono_contacto: orderJSON.telefono_contacto,
+                created_at: orderJSON.created_at,
+                updated_at: orderJSON.updated_at,
+                deleted_at: orderJSON.deleted_at,
+                envio: orderJSON.envio,
+                activo: orderJSON.activo,
+
+                address: orderJSON.Address,
+                products: orderJSON.OrderItems.map(item => ({
                     id: item.id,
                     product_id: item.product_id,
                     cantidad: item.cantidad,
@@ -78,16 +94,27 @@ exports.getAllOrders = async (req, res) => {
                             ? `${baseUrl}${item.Product.ProductImages[0].image_url}`
                             : '/placeholder.png'
                     }
+                })),
+                cups: orderJSON.OrderItemCups.map(cupItem => ({
+                    id: cupItem.id,
+                    id_order: cupItem.id_order,
+                    id_cup: cupItem.id_cup,
+                    image_url: `${baseUrl}${cupItem.image_url}`,
+                    cantidad: cupItem.cantidad,
+                    precio_unitario: cupItem.precio_unitario,
+                    subtotal: cupItem.subtotal,
+                    cup: cupItem.Cup
                 }))
             };
         });
 
         res.json(transformedOrders);
     } catch (error) {
-        console.log(error)
+        console.log(error);
         res.status(500).json({ message: 'Error al obtener los pedidos', error: error.message });
     }
 };
+
 
 exports.getOrderById = async (req, res) => {
     try {
