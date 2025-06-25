@@ -49,6 +49,12 @@ export default function CustomCupsPage() {
   const [editMax, setEditMax] = useState<number>(1);
   const [editPrecio, setEditPrecio] = useState<string>('');
 
+  // Estados para edición de tazas
+  const [editarTazaOpen, setEditarTazaOpen] = useState(false);
+  const [tazaEditando, setTazaEditando] = useState<Cup | null>(null);
+  const [nombreEdit, setNombreEdit] = useState<string>('');
+  const [descripcionEdit, setDescripcionEdit] = useState<string>('');
+
   useEffect(() => {
     cargarTazas();
     cargarInventario();
@@ -62,7 +68,7 @@ export default function CustomCupsPage() {
 
   const cargarInventario = async () => {
     const { data } = await cupService.getAllInventario();
-    
+
     setInventario(data);
   };
 
@@ -107,7 +113,7 @@ export default function CustomCupsPage() {
     setPrecios(data.filter((p: any) => p.id_cup === id));
   };
 
-  const handleOpenPreciosDialog = async(id: number) => {
+  const handleOpenPreciosDialog = async (id: number) => {
     setPreciosTazaId(id);
     setPreciosDialogOpen(true);
     cargarPrecios(id);
@@ -115,19 +121,19 @@ export default function CustomCupsPage() {
 
   const handleAgregarPrecio = async () => {
     if (!preciosTazaId || !nuevoMin || !nuevoMax || !nuevoPrecio) return;
-    try{
-        await cupService.createPrecioCupRango({ id_cup: preciosTazaId, min_cantidad: nuevoMin, max_cantidad: nuevoMax, precio_unitario: Number(nuevoPrecio) });
-        
-    }catch(error: any){
-        console.log(error)
-        if(error.status === 400){
-            Swal.fire({
-                title:"Error",
-                text: error.response.data.error,
-                icon:'error',
-                timer: 3000
-            })
-        }
+    try {
+      await cupService.createPrecioCupRango({ id_cup: preciosTazaId, min_cantidad: nuevoMin, max_cantidad: nuevoMax, precio_unitario: Number(nuevoPrecio) });
+
+    } catch (error: any) {
+      console.log(error)
+      if (error.status === 400) {
+        Swal.fire({
+          title: "Error",
+          text: error.response.data.error,
+          icon: 'error',
+          timer: 3000
+        })
+      }
     }
     setNuevoMin(1);
     setNuevoMax(1);
@@ -140,38 +146,38 @@ export default function CustomCupsPage() {
     cargarPrecios(preciosTazaId!);
   };
 
-  const handleDeletetaza = async(id: number) => {
+  const handleDeletetaza = async (id: number) => {
     const result = await Swal.fire({
-        title: "¿Estás seguro?",
-        text: "No podrás revertir esta acción",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
-        confirmButtonText: "Sí, eliminar",
-        cancelButtonText: "Cancelar"
+      title: "¿Estás seguro?",
+      text: "No podrás revertir esta acción",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar"
     });
 
     if (result.isConfirmed) {
-        try {
-            await cupService.deleteCup(id);
-            cargarTazas();
-            cargarInventario();
-            Swal.fire({
-                title: "Eliminado",
-                text: "Taza eliminada correctamente",
-                icon: "success",
-                timer: 1500
-            });
-        } catch (error) {
-            console.error('Error deleting Taza:', error);
-            Swal.fire({
-                title: "Error",
-                text: "No se pudo eliminar la Taza",
-                icon: "error",
-                timer: 1500
-            });
-        }
+      try {
+        await cupService.deleteCup(id);
+        cargarTazas();
+        cargarInventario();
+        Swal.fire({
+          title: "Eliminado",
+          text: "Taza eliminada correctamente",
+          icon: "success",
+          timer: 1500
+        });
+      } catch (error) {
+        console.error('Error deleting Taza:', error);
+        Swal.fire({
+          title: "Error",
+          text: "No se pudo eliminar la Taza",
+          icon: "error",
+          timer: 1500
+        });
+      }
     }
   }
 
@@ -224,14 +230,59 @@ export default function CustomCupsPage() {
       setEditPrecioId(null);
       cargarPrecios(precio.id_cup);
     } catch (error: any) {
-      if(error.status === 400){
+      if (error.status === 400) {
         Swal.fire({
           title: 'Error',
           text: error.response.data.error,
           icon: 'error',
-          timer:3000
+          timer: 3000
         });
       }
+    }
+  };
+
+  const handleOpenEditarTaza = (taza: Cup) => {
+    setTazaEditando(taza);
+    setNombreEdit(taza.name);
+    setDescripcionEdit(taza.descripcion);
+    setEditarTazaOpen(true);
+  };
+
+  const handleEditarTaza = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!tazaEditando || !nombreEdit || !descripcionEdit) {
+      Swal.fire({
+        title: 'Error',
+        text: 'Debes completar todos los campos',
+        icon: 'error',
+        timer: 2000
+      });
+      return;
+    }
+    try {
+      await cupService.updateCup(tazaEditando.id, {
+        name: nombreEdit,
+        descripcion: descripcionEdit
+      });
+      setEditarTazaOpen(false);
+      setTazaEditando(null);
+      setNombreEdit('');
+      setDescripcionEdit('');
+      cargarTazas();
+      cargarInventario();
+      Swal.fire({
+        title: 'Éxito',
+        text: 'Taza actualizada correctamente',
+        icon: 'success',
+        timer: 1500
+      });
+    } catch (error) {
+      Swal.fire({
+        title: 'Error',
+        text: 'No se pudo actualizar la taza',
+        icon: 'error',
+        timer: 2000
+      });
     }
   };
 
@@ -241,7 +292,7 @@ export default function CustomCupsPage() {
         <h2 className="text-2xl font-semibold">Administrar Tazas</h2>
         <Dialog open={openDialog} onOpenChange={setOpenDialog}>
           <DialogTrigger asChild>
-            <Button>Registrar Nueva Taza</Button>
+            <Button   className='hover:cursor-pointer'>Registrar Nueva Taza</Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <form onSubmit={handleAgregarTaza}>
@@ -320,46 +371,56 @@ export default function CustomCupsPage() {
 
 
       <Card className="mb-6">
-                <CardHeader className="p-4 pb-0">
-                    <CardTitle className="text-base font-medium">Tazas Registradas</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                    <div className="grid gap-3">
-                        {tazas.map(taza => (
-                            <div key={taza.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                                <div className="flex items-center gap-3">
-                                    <BsCupHotFill className="text-blue-600 text-xl" />
-                                    <span className="font-medium">{taza.name}</span>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleOpenPreciosDialog(taza.id)}
-                                    >
-                                        Modificar Precios
-                                    </Button>
-                                    <Button
+        <CardHeader className="p-4 pb-0">
+          <CardTitle className="text-base font-medium">Tazas Registradas</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4" >
+          <div className="grid gap-3">
+            {tazas.map(taza => (
+              <div key={taza.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <BsCupHotFill className="text-blue-600 text-xl" />
+                  <span className="font-medium">{taza.name}</span>
+                </div>
+                <div className="flex gap-2">
 
-                                        className='text-white'
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => handleDeletetaza(taza.id!)}
-                                    >
-                                        Eliminar
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
-                        {tazas.length === 0 && (
-                            <div className="text-center py-8 text-gray-500">
-                                <BsCupHotFill className="text-4xl mx-auto mb-2 text-gray-300" />
-                                <p>No hay tazas registradas</p>
-                            </div>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
+                  <Button
+                    className='hover:cursor-pointer'
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenPreciosDialog(taza.id)}
+                  >
+                    Modificar Precios
+                  </Button>
+                  <Button
+                    className='bg-blue-600 text-white hover:cursor-pointer hover:bg-blue-700 hover:text-white'
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenEditarTaza(taza)}
+                  >
+                    Editar
+                  </Button>
+                  <Button
+
+                    className='text-white hover:cursor-pointer hover:bg-red-700 hover:text-white'
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeletetaza(taza.id!)}
+                  >
+                    Eliminar
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {tazas.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <BsCupHotFill className="text-4xl mx-auto mb-2 text-gray-300" />
+                <p>No hay tazas registradas</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tabla de inventario de tazas */}
       <Card>
@@ -401,7 +462,7 @@ export default function CustomCupsPage() {
                     <TableCell>{inv.reserved_quantity ?? 0}</TableCell>
                     <TableCell>{inv.available_quantity ?? ((inv.stock) - (inv.reserved_quantity ?? 0))}</TableCell>
                     <TableCell>
-                      <Button size="sm" variant="outline" onClick={() => openAjustarStockModal(inv.id)}>
+                      <Button className='hover:cursor-pointer' size="sm" variant="outline" onClick={() => openAjustarStockModal(inv.id)}>
                         Ajustar stock
                       </Button>
                     </TableCell>
@@ -535,14 +596,14 @@ export default function CustomCupsPage() {
           </div>
           <span className='text-sm'>Agregar Nuevos Precios</span>
           <div className="flex gap-2 items-end mt-4">
-            
+
             <div>
               <label className="block text-xs">Desde</label>
-              <Input type="number" min={1}  onChange={e => setNuevoMin(Number(e.target.value))} required/>
+              <Input type="number" min={1} onChange={e => setNuevoMin(Number(e.target.value))} required />
             </div>
             <div>
               <label className="block text-xs">Hasta</label>
-              <Input type="number" min={nuevoMin}  onChange={e => setNuevoMax(Number(e.target.value))} required />
+              <Input type="number" min={nuevoMin} onChange={e => setNuevoMax(Number(e.target.value))} required />
             </div>
             <div>
               <label className="block text-xs">Precio unitario</label>
@@ -550,6 +611,51 @@ export default function CustomCupsPage() {
             </div>
             <Button size="sm" className="bg-blue-600 text-white" onClick={handleAgregarPrecio}>Agregar</Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para editar taza */}
+      <Dialog open={editarTazaOpen} onOpenChange={setEditarTazaOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <form onSubmit={handleEditarTaza}>
+            <DialogHeader>
+              <DialogTitle>Editar Taza</DialogTitle>
+              <DialogDescription>Modifica la información de la taza seleccionada.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <label htmlFor="nombreEdit" className="text-sm font-medium text-gray-700">
+                  Nombre de la taza
+                </label>
+                <Input
+                  id="nombreEdit"
+                  type="text"
+                  placeholder="Ej: Taza de café grande"
+                  value={nombreEdit}
+                  onChange={e => setNombreEdit(e.target.value)}
+                  className="w-full"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="descripcionEdit" className="text-sm font-medium text-gray-700">
+                  Descripción
+                </label>
+                <Input
+                  id="descripcionEdit"
+                  type="text"
+                  placeholder="Ej: Taza de cerámica blanca 350ml"
+                  value={descripcionEdit}
+                  onChange={e => setDescripcionEdit(e.target.value)}
+                  className="w-full"
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter className='mt-5'>
+              <Button type="submit" className="bg-blue-600 text-white">Actualizar taza</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
