@@ -33,6 +33,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Order } from "@/interfaces/Order"
+import { useRouter } from "next/navigation"
+import { clipToboard } from "@/utils/copyOrder"
+import Swal from "sweetalert2"
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
@@ -51,6 +54,8 @@ export default function OrdersPage() {
     enProceso: 0,
     pendientes: 0
   })
+
+  const router = useRouter();
 
   useEffect(() => {
     fetchOrders()
@@ -95,7 +100,14 @@ export default function OrdersPage() {
       toast("Pedido cancelado correctamente")
       setOpenCancelOrderId(null)
       fetchOrders()
-    } catch (error) {
+    } catch (error:any) {
+      Swal.fire({
+        title: 'Error al cancelar',
+        text: error.response.data.message,
+        timer: 4500,
+        icon:"error"
+      })
+      console.log(error)
       toast("No se pudo cancelar el pedido")
     }
   }
@@ -117,6 +129,7 @@ export default function OrdersPage() {
       toast("Pedido marcado como entregado")
       fetchOrders()
     } catch (error) {
+      console.log(error)
       toast("No se pudo marcar el pedido como entregado")
     }
   }
@@ -134,7 +147,7 @@ export default function OrdersPage() {
 
   // Filtrar órdenes por tipo de item
   const getOrdersByItemType = (type: 'products' | 'cups') => {
-    return orders.filter(order => 
+    return orders.filter(order =>
       order[type].length > 0
     )
   }
@@ -156,41 +169,16 @@ export default function OrdersPage() {
     </div>
   }
 
-  const clipToboard = (order: Order) => {
-    const addressInfo = `
-      📦 Información de Envío - Pedido #${order.id}
 
-      📱 Teléfono: ${order.telefono_contacto}
-
-      📍 Dirección:
-      🏠 ${order.address.nombre}
-      ${order.address.calle} ${order.address.numero_calle}
-      🏘️ ${order.address.colonia}
-      🏙️ ${order.address.ciudad}, ${order.address.estado}
-      📮 CP: ${order.address.codigo_postal}
-
-      📝 Referencias: ${order.address.referencias || 'Sin referencias'}
-      🏡 Detalles: ${order.address.descripcion_casa || 'Sin detalles adicionales'}
-      ⏰ Horario Preferido: ${order.address.horario_preferido || 'No especificado'}
-    `.trim();
-
-    navigator.clipboard.writeText(addressInfo)
-      .then(() => {
-        toast.success("Información copiada al portapapeles");
-      })
-      .catch(() => {
-        toast.error("Error al copiar la información");
-      });
-  };
 
   const abrirModalInfo = (order: Order) => {
     // setOpenOrderId(order.id)
     return (
-      <Dialog 
-      open={openOrderId === order.id} onOpenChange={(open) => {
-        console.log(openOrderId)
-        if (!open) setOpenOrderId(null);
-      }}
+      <Dialog
+        open={openOrderId === order.id} onOpenChange={(open) => {
+          console.log(openOrderId)
+          if (!open) setOpenOrderId(null);
+        }}
       >
         <DialogTrigger asChild>
           <Button
@@ -198,7 +186,7 @@ export default function OrdersPage() {
             size="sm"
             onClick={() => setOpenOrderId(order.id)}
           >
-            Ver Detalles
+            Preparar Envio
           </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto p-6 rounded-lg">
@@ -258,7 +246,7 @@ export default function OrdersPage() {
                 </div>
               </div>
             </div>
-            
+
             {order.products.length > 0 && (
               <div className="space-y-2">
                 <span className="font-medium">Productos:</span>
@@ -352,7 +340,7 @@ export default function OrdersPage() {
     )
   }
 
-  const renderOrdersTable = (orders: Order[]) => (
+  const renderOrdersTable = (orders: Order[], type?: 'products' | 'cups') => (
     <Table>
       <TableHeader>
         <TableRow>
@@ -367,7 +355,7 @@ export default function OrdersPage() {
       </TableHeader>
       <TableBody>
         {orders.map((order) => (
-          <TableRow key={order.id}>
+          <TableRow key={order.id} onDoubleClick={() => router.push(`/orders/item/${order.id}`)}>
             <TableCell className="font-medium">#{order.id}</TableCell>
             <TableCell>{order.telefono_contacto}</TableCell>
             <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
@@ -391,215 +379,225 @@ export default function OrdersPage() {
               {order.address.nombre} - {order.address.calle} {order.address.numero_calle}, {order.address.colonia}, {order.address.ciudad}, {order.address.estado}, {order.address.codigo_postal}
             </TableCell>
             <TableCell className="text-right">
-              {order.status === "pendiente" ? (
-                <div className="flex gap-2 justify-end">
-                  {abrirModalInfo(order)}
-                  <Dialog open={openCancelOrderId === order.id} onOpenChange={(open) => {
-                    if (!open) setOpenCancelOrderId(null);
-                  }}>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-red-500 text-red-600 hover:bg-red-50"
-                        onClick={() => setOpenCancelOrderId(order.id)}
-                      >
-                        Cancelar Pedido
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Cancelar Pedido - #{order.id}</DialogTitle>
-                        <DialogDescription>
-                          ¿Estás seguro de que deseas cancelar este pedido? Esta acción no se puede deshacer.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <span className="font-medium">Teléfono:</span>
-                          <span className="col-span-3">{order.telefono_contacto}</span>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <span className="font-medium">Total:</span>
-                          <span className="col-span-3">${order.total}</span>
-                        </div>
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                          <p className="text-sm text-red-800">
-                            <strong>Advertencia:</strong> Al cancelar el pedido, se notificará al cliente y se procesará el reembolso si corresponde.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex justify-end gap-2">
+              <div className="flex gap-2 justify-end">
+                {/* Botón Preparar pedido solo para tazas */}
+                {type === 'cups' && order.status === "pendiente" && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => router.push(`/orders/item/${order.id}`)}
+                  >
+                    Preparar pedido
+                  </Button>
+                )}
+                {/* Acciones existentes */}
+                {order.status === "pendiente" ? (
+                  <>
+                    {abrirModalInfo(order)}
+                    <Dialog open={openCancelOrderId === order.id} onOpenChange={(open) => {
+                      if (!open) setOpenCancelOrderId(null);
+                    }}>
+                      <DialogTrigger asChild>
                         <Button
                           variant="outline"
-                          onClick={() => setOpenCancelOrderId(null)}
+                          size="sm"
+                          className="border-red-500 text-red-600 hover:bg-red-50"
+                          onClick={() => setOpenCancelOrderId(order.id)}
                         >
-                          Cancelar
+                          Cancelar Pedido
                         </Button>
-                        <Button
-                          onClick={() => handleCancelOrder(order.id)}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          Confirmar Cancelación
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              ) : order.status === "enviado" ? (
-                <div className="flex gap-2 justify-end">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => setSelectedOrder(order)}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        Entregar
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Confirmar Entrega - Pedido #{order.id}</DialogTitle>
-                        <DialogDescription>
-                          Confirma que el pedido ha sido entregado al cliente
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <span className="font-medium">Teléfono:</span>
-                          <span className="col-span-3">{order.telefono_contacto}</span>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <span className="font-medium">Dirección:</span>
-                          <span className="col-span-3">{order.address.calle} {order.address.numero_calle}, {order.address.colonia}</span>
-                        </div>
-                        <div className="space-y-2">
-                          <span className="font-medium">Productos a entregar:</span>
-                          <div className="pl-4 space-y-2">
-                            {order.products.map((item) => (
-                              <div key={item.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                                <img
-                                  src={item.product.image}
-                                  alt={item.product.title}
-                                  className="w-10 h-10 object-cover rounded"
-                                />
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium">{item.product.title}</p>
-                                  <p className="text-sm text-blue-600 font-bold">Cantidad: {item.cantidad}</p>
-                                </div>
-                              </div>
-                            ))}
-                            {order.cups.map((item) => (
-                              <div key={item.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                                <img
-                                  src={item.image_url}
-                                  alt={item.cup.name}
-                                  className="w-10 h-10 object-cover rounded"
-                                />
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium">{item.cup.name}</p>
-                                  <p className="text-sm text-blue-600 font-bold">Cantidad: {item.cantidad}</p>
-                                </div>
-                              </div>
-                            ))}
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Cancelar Pedido - #{order.id}</DialogTitle>
+                          <DialogDescription>
+                            ¿Estás seguro de que deseas cancelar este pedido? Esta acción no se puede deshacer.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <span className="font-medium">Teléfono:</span>
+                            <span className="col-span-3">{order.telefono_contacto}</span>
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <span className="font-medium">Total:</span>
+                            <span className="col-span-3">${order.total}</span>
+                          </div>
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <p className="text-sm text-red-800">
+                              <strong>Advertencia:</strong> Al cancelar el pedido, se notificará al cliente y se procesará el reembolso si corresponde.
+                            </p>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex justify-end">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => setOpenCancelOrderId(null)}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            onClick={() => handleCancelOrder(order.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Confirmar Cancelación
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                ) : order.status === "enviado" ? (
+                  <>
+                    <Dialog>
+                      <DialogTrigger asChild>
                         <Button
-                          onClick={() => handleDeliverOrder(order.id)}
+                          variant="default"
+                          size="sm"
+                          onClick={() => setSelectedOrder(order)}
                           className="bg-green-600 hover:bg-green-700"
                         >
-                          Confirmar Entrega
+                          Entregar
                         </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                  <Dialog open={openCancelShippingId === order.id} onOpenChange={(open) => {
-                    if (!open) setOpenCancelShippingId(null);
-                  }}>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-red-500 text-red-600 hover:bg-red-50"
-                        onClick={() => setOpenCancelShippingId(order.id)}
-                      >
-                        Cancelar Envío
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Cancelar Envío - Pedido #{order.id}</DialogTitle>
-                        <DialogDescription>
-                          ¿Estás seguro de que deseas cancelar el envío? El pedido regresará a estado pendiente.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <span className="font-medium">Teléfono:</span>
-                          <span className="col-span-3">{order.telefono_contacto}</span>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Confirmar Entrega - Pedido #{order.id}</DialogTitle>
+                          <DialogDescription>
+                            Confirma que el pedido ha sido entregado al cliente
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <span className="font-medium">Teléfono:</span>
+                            <span className="col-span-3">{order.telefono_contacto}</span>
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <span className="font-medium">Dirección:</span>
+                            <span className="col-span-3">{order.address.calle} {order.address.numero_calle}, {order.address.colonia}</span>
+                          </div>
+                          <div className="space-y-2">
+                            <span className="font-medium">Productos entregados:</span>
+                            <div className="space-y-2">
+                              {order.products.map((item) => (
+                                <div key={item.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                                  <img
+                                    src={item.product.image}
+                                    alt={item.product.title}
+                                    className="w-10 h-10 object-cover rounded"
+                                  />
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium">{item.product.title}</p>
+                                    <p className="text-sm text-blue-600 font-bold">Cantidad: {item.cantidad}</p>
+                                  </div>
+                                </div>
+                              ))}
+
+                              {order.cups.length > 0 && (
+                                <div className="flex items-center gap-4 p-2 rounded-lg">
+                                  <img
+                                    src={order.cups[0].image_url}
+                                    alt={'taza personalizada'}
+                                    className="w-20 object-cover rounded"
+                                  />
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {order.cups.map((item) => (
+                                      <div key={item.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                                        <div className="flex-1">
+                                          <p className="text-sm font-medium">{item.cup.name}</p>
+                                          <p className="text-sm text-blue-600 font-bold">Cantidad: {item.cantidad}</p>
+                                        </div>
+                                      </div>
+                                    ))}
+
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <span className="font-medium">Dirección:</span>
-                          <span className="col-span-3">{order.address.calle} {order.address.numero_calle}, {order.address.colonia}</span>
+                        <div className="flex justify-end">
+                          <Button
+                            onClick={() => handleDeliverOrder(order.id)}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            Confirmar Entrega
+                          </Button>
                         </div>
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                          <p className="text-sm text-yellow-800">
-                            <strong>Motivo común:</strong> No se encontró a la persona en la dirección especificada.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex justify-end gap-2">
+                      </DialogContent>
+                    </Dialog>
+                    <Dialog open={openCancelShippingId === order.id} onOpenChange={(open) => {
+                      if (!open) setOpenCancelShippingId(null);
+                    }}>
+                      <DialogTrigger asChild>
                         <Button
                           variant="outline"
-                          onClick={() => setOpenCancelShippingId(null)}
+                          size="sm"
+                          className="border-red-500 text-red-600 hover:bg-red-50"
+                          onClick={() => setOpenCancelShippingId(order.id)}
                         >
-                          Cancelar
+                          Cancelar Envío
                         </Button>
-                        <Button
-                          onClick={() => handleCancelShipping(order.id)}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          Confirmar Cancelación
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              ) : (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => {abrirModalInfo(order)}}>Ver Detalles</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, "pendiente")}>
-                      Marcar como Pendiente
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, "procesando")}>
-                      Marcar como Procesando
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, "enviado")}>
-                      Marcar como Enviado
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, "entregado")}>
-                      Marcar como Entregado
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleCancelOrder(order.id)}
-                    >
-                      Cancelar Pedido
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Cancelar Envío - Pedido #{order.id}</DialogTitle>
+                          <DialogDescription>
+                            ¿Estás seguro de que deseas cancelar el envío? El pedido regresará a estado pendiente.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <span className="font-medium">Teléfono:</span>
+                            <span className="col-span-3">{order.telefono_contacto}</span>
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <span className="font-medium">Dirección:</span>
+                            <span className="col-span-3">{order.address.calle} {order.address.numero_calle}, {order.address.colonia}</span>
+                          </div>
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <p className="text-sm text-yellow-800">
+                              <strong>Motivo común:</strong> No se encontró a la persona en la dirección especificada.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => setOpenCancelShippingId(null)}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            onClick={() => handleCancelShipping(order.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Confirmar Cancelación
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                ) : (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => router.push(`/orders/item/${order.id}`)}>Ver Detalles</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, "pendiente")}>Marcar como Pendiente</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, "procesando")}>Marcar como Procesando</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, "enviado")}>Marcar como Enviado</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, "entregado")}>Marcar como Entregado</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-red-600" onClick={() => handleCancelOrder(order.id)}>
+                        Cancelar Pedido
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </TableCell>
           </TableRow>
         ))}
@@ -699,14 +697,14 @@ export default function OrdersPage() {
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="products">Productos ({(orders.filter((order : Order) => order['products'].length > 0  && order.status !== 'entregado')).length})</TabsTrigger>
-              <TabsTrigger value="cups">Tazas ({(orders.filter((order : Order) => order['cups'].length > 0  && order.status !== 'entregado')).length})</TabsTrigger>
+              <TabsTrigger value="products">Productos ({(orders.filter((order: Order) => order['products'].length > 0 && order.status !== 'entregado')).length})</TabsTrigger>
+              <TabsTrigger value="cups">Tazas ({(orders.filter((order: Order) => order['cups'].length > 0 && order.status !== 'entregado')).length})</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="products" className="mt-6">
               <div className="overflow-x-auto">
                 {filteredOrders('products').length > 0 ? (
-                  renderOrdersTable(filteredOrders('products'))
+                  renderOrdersTable(filteredOrders('products'), 'products')
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     No hay pedidos de productos que coincidan con los filtros
@@ -714,11 +712,11 @@ export default function OrdersPage() {
                 )}
               </div>
             </TabsContent>
-            
+
             <TabsContent value="cups" className="mt-6">
               <div className="overflow-x-auto">
                 {filteredOrders('cups').length > 0 ? (
-                  renderOrdersTable(filteredOrders('cups'))
+                  renderOrdersTable(filteredOrders('cups'), 'cups')
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     No hay pedidos de tazas que coincidan con los filtros

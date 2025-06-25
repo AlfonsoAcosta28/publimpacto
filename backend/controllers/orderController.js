@@ -118,16 +118,10 @@ exports.getAllOrders = async (req, res) => {
 
 exports.getOrderById = async (req, res) => {
     try {
-        // Obtener la URL base
         const baseUrl = `${req.protocol}://${req.get('host')}`;
 
         const order = await Order.findByPk(req.params.id, {
             include: [
-                {
-                    model: User,
-                    as: 'User',
-                    attributes: ['id', 'nombre', 'correo', 'telefono']
-                },
                 {
                     model: Address,
                     as: 'Address',
@@ -144,7 +138,7 @@ exports.getOrderById = async (req, res) => {
                         {
                             model: Product,
                             as: 'Product',
-                            attributes: ['id', 'title', 'price'],
+                            attributes: ['id', 'title'],
                             include: [
                                 {
                                     model: ProductImage,
@@ -156,6 +150,17 @@ exports.getOrderById = async (req, res) => {
                             ]
                         }
                     ]
+                },
+                {
+                    model: OrderItemCup,
+                    as: 'OrderItemCups',
+                    include: [
+                        {
+                            model: Cup,
+                            as: 'Cup',
+                            attributes: ['id', 'name', 'descripcion']
+                        }
+                    ]
                 }
             ]
         });
@@ -164,17 +169,27 @@ exports.getOrderById = async (req, res) => {
             return res.status(404).json({ message: 'Pedido no encontrado' });
         }
 
-        // Check if user is allowed to see this order
         if (req.user.role === 'user' && order.user_id !== req.user.id) {
             return res.status(403).json({ message: 'No tienes permiso para ver este pedido' });
         }
 
-        // Transformar la respuesta para incluir la imagen en el formato esperado
+        const orderJSON = order.toJSON();
+
         const transformedOrder = {
-            ...order.toJSON(),
-            user: order.User,
-            address: order.Address,
-            items: order.OrderItems.map(item => ({
+            id: orderJSON.id,
+            user_id: orderJSON.user_id,
+            address_id: orderJSON.address_id,
+            total: orderJSON.total,
+            status: orderJSON.status,
+            telefono_contacto: orderJSON.telefono_contacto,
+            created_at: orderJSON.created_at,
+            updated_at: orderJSON.updated_at,
+            deleted_at: orderJSON.deleted_at,
+            envio: orderJSON.envio,
+            activo: orderJSON.activo,
+
+            address: orderJSON.Address,
+            products: orderJSON.OrderItems.map(item => ({
                 id: item.id,
                 product_id: item.product_id,
                 cantidad: item.cantidad,
@@ -182,16 +197,26 @@ exports.getOrderById = async (req, res) => {
                 product: {
                     id: item.Product.id,
                     title: item.Product.title,
-                    price: item.Product.price,
                     image: item.Product.ProductImages[0]?.image_url
                         ? `${baseUrl}${item.Product.ProductImages[0].image_url}`
                         : '/placeholder.png'
                 }
+            })),
+            cups: orderJSON.OrderItemCups.map(cupItem => ({
+                id: cupItem.id,
+                id_order: cupItem.id_order,
+                id_cup: cupItem.id_cup,
+                image_url: `${baseUrl}${cupItem.image_url}`,
+                cantidad: cupItem.cantidad,
+                precio_unitario: cupItem.precio_unitario,
+                subtotal: cupItem.subtotal,
+                cup: cupItem.Cup
             }))
         };
 
         res.json(transformedOrder);
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Error al obtener el pedido', error: error.message });
     }
 };
@@ -723,31 +748,56 @@ exports.updateOrderStatus = async (req, res) => {
 };
 
 exports.cancelOrder = async (req, res) => {
+    const transaction = await sequelize.transaction();
     try {
-        const order = await Order.findByPk(req.params.id);
+        const order = await Order.findByPk(req.params.id, {
+            include: [{
+                model: OrderItem,
+                as: 'OrderItems'
+            }]
+        });
         if (!order) {
+            await transaction.rollback();
             return res.status(404).json({ message: 'Pedido no encontrado' });
         }
 
         // Only the user who created the order or admin/staff can cancel it
         if (req.user.role === 'user' && order.user_id !== req.user.id) {
+            await transaction.rollback();
             return res.status(403).json({ message: 'No tienes permiso para cancelar este pedido' });
         }
 
         // Only allow cancellation of pending or processing orders
         if (!['pendiente', 'procesando'].includes(order.status)) {
+            await transaction.rollback();
             return res.status(400).json({
                 message: 'No se puede cancelar el pedido porque ya está en proceso de envío o entregado'
             });
         }
 
-        await order.update({ status: 'cancelado' });
+        // Liberar el stock reservado y sumarlo al stock total
+        for (const item of order.OrderItems) {
+            const inventory = await Inventory.findOne({
+                where: { product_id: item.product_id }
+            });
+            if (inventory) {
+                await inventory.update({
+                    reserved_quantity: inventory.reserved_quantity - item.cantidad,
+                    stock_quantity: inventory.stock_quantity + item.cantidad
+                }, { transaction });
+            }
+        }
+
+        await order.update({ status: 'cancelado' }, { transaction });
+        await transaction.commit();
 
         res.json({
             message: 'Pedido cancelado exitosamente',
             order
         });
     } catch (error) {
+        console.log(error)
+        await transaction.rollback();
         res.status(500).json({ message: 'Error al cancelar el pedido', error: error.message });
     }
 };

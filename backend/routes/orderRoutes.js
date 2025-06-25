@@ -13,10 +13,10 @@ router.get('/user', authenticateJWT, orderController.getUserOrders);
 router.post('/', authenticateJWT, orderController.createOrder);
 router.post('/cup', authenticateJWT, uploadCupFields, orderController.createOrderCup);
 router.put('/:id/cancel', authenticateJWT, orderController.cancelOrder);
-router.get('/:id', authenticateJWT, orderController.getOrderById);
 
 // Admin/Staff routes
 router.get('/', authenticateAdmin, orderController.getAllOrders);
+router.get('/:id', authenticateAdmin, orderController.getOrderById);
 router.put('/:id/status', authenticateAdmin, orderController.updateOrderStatus);
 router.get('/users/:userId/orders', authenticateAdmin, orderController.getUserOrders);
 module.exports = router;
