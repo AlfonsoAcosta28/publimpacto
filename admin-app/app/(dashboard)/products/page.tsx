@@ -575,7 +575,7 @@ export default function ProductsPage() {
                           }}>
                             Editar
                           </DropdownMenuItem>
-                          {product.discount_percentage ? (
+                          {product.discount_percentage && product.discount_percentage > 0 ? (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
