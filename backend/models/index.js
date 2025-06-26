@@ -25,6 +25,8 @@ const Cup = require('./Cup')
 const InventoryCups = require('./inventoryCup');
 const PrecioCupRango = require('./precioCupRango')
 const OrderItemCup = require('./OrderItemCup');
+const QuoteRequest = require('./QuoteRequest');
+const FinalQuote = require('./FinalQuote')
 
 // Define model associations
 Category.hasMany(Product, { foreignKey: 'category_id' });
@@ -76,16 +78,6 @@ PrecioCamisaRango.belongsTo(Camisa, { foreignKey: 'id_camisa', as: 'camisa' });
 Camisa.hasMany(InventarioCamisa, { foreignKey: 'id_camisa', as: 'inventario' });
 InventarioCamisa.belongsTo(Camisa, { foreignKey: 'id_camisa', as: 'camisa' });
 
-// OrdenCamisa y sus relaciones
-// User.hasMany(OrdenCamisa, { foreignKey: 'user_id', as: 'ordenesCamisa' });
-// OrdenCamisa.belongsTo(User, { foreignKey: 'user_id', as: 'usuario' });
-
-// Address.hasMany(OrdenCamisa, { foreignKey: 'address_id', as: 'ordenesCamisa' });
-// OrdenCamisa.belongsTo(Address, { foreignKey: 'address_id', as: 'direccion' });
-
-// OrdenCamisa.hasMany(OrdenItemCamisa, { foreignKey: 'id_orden_camisa', as: 'items' });
-// OrdenItemCamisa.belongsTo(OrdenCamisa, { foreignKey: 'id_orden_camisa', as: 'ordenCamisa' });
-
 Camisa.hasMany(OrdenItemCamisa, { foreignKey: 'id_camisa', as: 'ordenesItem' });
 OrdenItemCamisa.belongsTo(Camisa, { foreignKey: 'id_camisa', as: 'camisa' });
 
@@ -115,6 +107,17 @@ OrderItemCup.belongsTo(Order, { foreignKey: 'id_order' });
 OrderItemCup.belongsTo(Cup, { foreignKey: 'id_cup', as: 'Cup' });
 Cup.hasMany(OrderItemCup, { foreignKey: 'id_cup', as: 'OrderItemCups' });
 
+// Asociaciones de QuoteRequest
+QuoteRequest.belongsTo(Service, { foreignKey: 'service_id', as: 'Service' });
+Service.hasMany(QuoteRequest, { foreignKey: 'service_id', as: 'quoteRequests' });
+QuoteRequest.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+User.hasMany(QuoteRequest, { foreignKey: 'user_id', as: 'quoteRequests' });
+
+// Asociación uno a uno entre QuoteRequest y FinalQuote
+QuoteRequest.hasOne(FinalQuote, { foreignKey: 'quote_requests_id', as: 'final_quote' });
+FinalQuote.belongsTo(QuoteRequest, { foreignKey: 'quote_requests_id', as: 'quote_request' });
+
+FinalQuote.belongsTo(Address, { foreignKey: 'addresses_id', as: 'address' });
 // Export models and sequelize instance
 module.exports = {
   sequelize,
@@ -130,23 +133,21 @@ module.exports = {
   Address,
   Inventory,
   Service,
-  // ServiceOption, 
-  // ServiceOptionValue,
   ServiceImage,
-  // ServiceInventory,
   ServiceOrder,
   Camisa,
   Color,
   Talla,
   PrecioCamisaRango,
-  // OrdenCamisa,
   OrdenItemCamisa,
   PersonalizacionImagen,
   InventarioCamisa,
   Cup,
   InventoryCups,
   PrecioCupRango,
-  OrderItemCup
+  OrderItemCup,
+  QuoteRequest,
+  FinalQuote
 };
 
 

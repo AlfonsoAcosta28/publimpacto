@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { User, ShoppingBag, LogOut, Settings } from "lucide-react"
+import { User, ShoppingBag, LogOut, Settings,BadgeDollarSign  } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { authService } from "@/services/authService"
 import { toast } from "sonner"
@@ -74,6 +74,13 @@ export default function UserMenu() {
           <DropdownMenuItem>
             <ShoppingBag className="mr-2 h-4 w-4" />
             <span>Mis Compras</span>
+          </DropdownMenuItem>
+        </Link>
+        
+        <Link href="/quotes">
+          <DropdownMenuItem>
+            <BadgeDollarSign className="mr-2 h-4 w-4" />
+            <span>Mis cotizaciones</span>
           </DropdownMenuItem>
         </Link>
 

@@ -32,6 +32,8 @@ const inventarioCamisaRoutes = require('./routes/inventarioCamisaRoutes');
 const cupRoutes = require('./routes/cupRoutes');
 const inventoryCupRoutes = require('./routes/inventoryCupRoutes')
 const preciosCupRangoroutes = require('./routes/precioCupRangoRoutes')
+const quoteRequestRoutes = require('./routes/quoteRequestRoutes')
+const finalQuotesRoutes = require('./routes/finalQuoteRoutes')
 
 const app = express();
 const PORT = process.env.PORT || 5000; 
@@ -97,6 +99,8 @@ app.use('/api/inventario-camisa', inventarioCamisaRoutes);
 app.use('/api/cup', cupRoutes)
 app.use('/api/inventario-cup', inventoryCupRoutes)
 app.use('/api/precios-cup', preciosCupRangoroutes)
+app.use('/api/quote-requests', quoteRequestRoutes)
+app.use('/api/final-quotes', finalQuotesRoutes)
 
 // Error handler
 app.use((err, req, res, next) => {

@@ -159,7 +159,7 @@ export default function ServicesPage() {
       {/* Grid de servicios */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredServices.map((service) => (
-          <Card key={service.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card key={service.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push(`/services/${service.id}`)}>
             <CardHeader className="p-0">
               <div className="relative h-48 w-full">
                 <Image
@@ -197,80 +197,6 @@ export default function ServicesPage() {
           </Card>
         ))}
       </div>
-
-      {/* Modal de pedido */}
-      <Dialog open={isOrderOpen} onOpenChange={setIsOrderOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Solicitar {selectedService?.name}</DialogTitle>
-            <DialogDescription>
-              Completa los detalles para solicitar este servicio
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleOrderSubmit} className="space-y-4">
-            {/* Información de contacto */}
-            <div>
-              <Label>Información de contacto</Label>
-              <div className="grid grid-cols-2 gap-3 mt-2">
-                <Input
-                  placeholder="Nombre completo"
-                  value={orderForm.name || ''}
-                  onChange={(e: any) => setOrderForm(prev => ({
-                    ...prev,
-                    name: e.target.value
-                  }))}
-                  required
-                />
-                <Input
-                  placeholder="Teléfono"
-                  value={orderForm.phone || ''}
-                  onChange={(e) => setOrderForm(prev => ({
-                    ...prev,
-                    phone: e.target.value
-                  }))}
-                  required
-                />
-              </div>
-              <Input
-                placeholder="Email"
-                type="email"
-                className="mt-3"
-                value={orderForm.email || ''}
-                onChange={(e) => setOrderForm(prev => ({
-                  ...prev,
-                  email: e.target.value
-                }))}
-                required
-              />
-            </div>
-
-            {/* Comentarios adicionales */}
-            <div>
-              <Label>Comentarios adicionales (opcional)</Label>
-              <Textarea
-                placeholder="Describe cualquier detalle específico o requerimiento especial..."
-                value={orderForm.comments || ''}
-                onChange={(e) => setOrderForm(prev => ({
-                  ...prev,
-                  comments: e.target.value
-                }))}
-                className="mt-2"
-                rows={3}
-              />
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsOrderOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit">
-                Enviar Solicitud
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
