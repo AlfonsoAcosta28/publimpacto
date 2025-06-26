@@ -23,14 +23,4 @@ export const servicesService = {
     }
   },
 
-  // Obtener inventario de un servicio específico
-  getServiceInventory: async (serviceId) => {
-    try {
-      const response = await api.get(`/service-inventory/service/${serviceId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error en getServiceInventory:', error);
-      throw error;
-    }
-  }
 }; 

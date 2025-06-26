@@ -50,14 +50,14 @@ export default function DashboardLayout({
   // Define las rutas de navegación ajustadas a tu estructura de archivos
   const navigationItems = [
     { path: '/dashboard', label: 'Dashboard', icon: ChartArea },
+    { path: '/orders', label: 'Pedidos', icon: ShoppingBag },
     { path: '/products', label: 'Productos', icon: Package },
+    { path: '/categories', label: 'Categorías', icon: MdCategory },
+    { path: '/inventory', label:'Inventario', icon: PackageOpen },
     { path: '/services', label: 'Servicios', icon: GrServices },
     { path: '/custom_tshirt', label: 'Camisas', icon: FaTshirt },
     { path: '/custom_cup', label: 'Tazas', icon: BsCupHotFill },
-    { path: '/service-orders', label: 'Órdenes de Servicios', icon: ShoppingBag },
-    { path: '/categories', label: 'Categorías', icon: MdCategory },
-    { path: '/inventory', label:'Inventario', icon: PackageOpen },
-    { path: '/orders', label: 'Pedidos', icon: ShoppingBag },
+    { path: '/service-orders', label: 'Cotzaciones de Servicios', icon: ShoppingBag },
     { path: '/users', label: 'Usuarios', icon: Users },
     { path: '/shipping-price', label: 'Precio de Envío', icon: Truck },
     { path: '/banners', label: 'Banners', icon: Layout },

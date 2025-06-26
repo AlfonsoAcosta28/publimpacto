@@ -37,9 +37,13 @@ export const servicesService = {
       formData.append('name', serviceData.name);
       formData.append('description', serviceData.description);
       formData.append('base_price', serviceData.base_price.toString());
-      
-      // Agregar opciones del servicio
-      formData.append('options', JSON.stringify(serviceData.options));
+      formData.append('short_description', serviceData.short_description.toString());
+      if (serviceData.features) {
+        formData.append('features', JSON.stringify(serviceData.features));
+      }
+      if (serviceData.applications) {
+        formData.append('applications', JSON.stringify(serviceData.applications));
+      }
       
       // Agregar imagen principal
       formData.append('mainImage', mainImage);
@@ -80,9 +84,13 @@ export const servicesService = {
       formData.append('name', serviceData.name);
       formData.append('description', serviceData.description);
       formData.append('base_price', serviceData.base_price.toString());
-      
-      // Agregar opciones del servicio
-      formData.append('options', JSON.stringify(serviceData.options));
+      formData.append('short_description', serviceData.short_description.toString());
+      if (serviceData.features) {
+        formData.append('features', JSON.stringify(serviceData.features));
+      }
+      if (serviceData.applications) {
+        formData.append('applications', JSON.stringify(serviceData.applications));
+      }
       
       // Agregar imagen principal si se proporciona
       if (mainImage) {
@@ -117,31 +125,6 @@ export const servicesService = {
       throw error;
     }
   },
-
-  // Aplicar descuento a un servicio
-  applyDiscount: async (id: number, discountType: 'percentage' | 'price', value: number): Promise<Service> => {
-    try {
-      const response = await api.post(`/services/${id}/discount`, {
-        discount_type: discountType,
-        value: value
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Frontend: Error al aplicar descuento:', error);
-      throw error;
-    }
-  },
-
-  // Eliminar descuento de un servicio
-  removeDiscount: async (id: number): Promise<Service> => {
-    try {
-      const response = await api.delete(`/services/${id}/discount`);
-      return response.data;
-    } catch (error) {
-      console.error('Frontend: Error al eliminar descuento:', error);
-      throw error;
-    }
-  }
 };
 
 export default servicesService; 

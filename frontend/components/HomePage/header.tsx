@@ -21,14 +21,17 @@ export default function Header() {
               Inicio
             </Link>
             <Link href="/catalog" className="text-gray-700 hover:text-blue-600 font-medium">
-              Catálogo
+              Productos
+            </Link>
+            <Link href="/services" className="text-gray-700 hover:text-blue-600 font-medium">
+              Servicios
             </Link>
             <Link href="/personalization" className="text-gray-700 hover:text-blue-600 font-medium">
               Personalización
             </Link>
-            <Link href="/checkout" className="text-gray-700 hover:text-blue-600 font-medium">
+            {/* <Link href="/checkout" className="text-gray-700 hover:text-blue-600 font-medium">
               Pagar 
-            </Link>
+            </Link> */}
           </nav>
 
           <div className="flex items-center space-x-4">

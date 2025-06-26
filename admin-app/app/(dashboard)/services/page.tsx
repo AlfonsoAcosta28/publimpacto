@@ -39,60 +39,67 @@ import { ProductImageDisplay } from "@/components/ProductImageDisplay";
 import { Product, Category } from '@/interfaces/Product';
 import productService from "@/services/productService"
 import servicesService from "@/services/servicesService"
-import { Service, ServiceOption, ServiceInventory } from "@/interfaces/Service"
+import { Service } from "@/interfaces/Service"
 import serviceInventoryService from "@/services/serviceInventoryService"
 
+// Lista de emojis sugeridos para iconos
+const EMOJI_LIST = [
+  "🎨", // diseño gráfico
+  "🖌️", // pincel para diseño o arte
+  "🖍️", // crayones (creatividad, bocetos)
+  "🖋️", // pluma estilográfica
+  "✏️", // lápiz (bocetos, correcciones)
+  "📐", // reglas, precisión en cortes
+  "📏", // medida y exactitud
+  "📸", // fotografía de productos
+  "🖼️", // imagen, arte final
+  "🖨️", // impresora
+  "📇", // tarjetas impresas
+  "🏷️", // etiquetas
+  "🎁", // empaques
+  "📦", // entrega de productos
+  "🚚", // envío, logística
+  "⚙️", // maquinaria de impresión o corte
+  "🔧", // ajustes personalizados
+  "🧵", // bordado
+  "🧶", // hilos decorativos
+  "👕", // camisetas
+  "🧢", // gorras
+  "🧥", // ropa personalizada
+  "🎽", // camisetas deportivas
+  "👜", // bolsas promocionales
+  "🎒", // mochilas
+  "📣", // marketing BTL
+  "📢", // perifoneo
+  "💬", // atención al cliente
+  "⭐", // calidad, reputación
+  "💎", // excelencia
+  "🔥", // diseños llamativos
+  "⚡", // rapidez
+  "🛡️", // garantía, confianza
+  "🔒", // protección de marca
+  "🔄", // cambios, revisiones
+  "💡", // ideas creativas
+  "🧠", // estrategia y diseño inteligente
+  "🧰", // herramientas de diseño
+  "📊", // resultados de campañas
+  "🗂️", // portafolio de servicios
+  "🧾", // cotizaciones
+  "💰", // precios accesibles
+  "🎯", // objetivo cumplido
+  "✅", // cumplimiento
+  "📍", // ubicación
+  "📞", // contacto
+  "⌛", // entrega puntual
+  "📆", // plazos programados
+  "🤝", // trato con el cliente
+  "🧑‍🎨", // diseñador
+  "🏭", // planta o taller de producción
+  "📋", // checklist de producción
+  "🚀", // lanzamientos promocionales
+  "🌟", // destacado
+];
 
-// Plantillas predefinidas de servicios
-const SERVICE_TEMPLATES: { [key: string]: ServiceOption[] } = {
-  'DTF': [
-    { name: 'ancho', input_type: 'text', options: ['58'] },
-    { name: 'largo', input_type: 'text' },
-    { name: 'archivo', input_type: 'file' }
-  ],
-  'Bordado': [
-    { name: 'ancho', input_type: 'text' },
-    { name: 'largo', input_type: 'text' },
-    { name: 'archivo', input_type: 'file' }
-  ],
-  'Lona': [
-    { name: 'ancho', input_type: 'text' },
-    { name: 'largo', input_type: 'text' },
-    { name: 'archivo', input_type: 'file' }
-  ],
-  'Impresión de vinil': [
-    { name: 'ancho', input_type: 'text' },
-    { name: 'largo', input_type: 'text' },
-    { name: 'archivo', input_type: 'file' }
-  ],
-  'Corte de vinil': [
-    { name: 'ancho', input_type: 'text' },
-    { name: 'largo', input_type: 'text' },
-    { name: 'archivo', input_type: 'file' }
-  ],
-  'Grabado láser': [
-    { name: 'ancho', input_type: 'text' },
-    { name: 'largo', input_type: 'text' },
-    { name: 'archivo', input_type: 'file' },
-    { name: 'producto', input_type: 'text' }
-  ],
-  'Perifoneo': [
-    { name: 'dias', input_type: 'select', options: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] },
-    { name: 'horario', input_type: 'time' },
-    { name: 'archivo', input_type: 'file' }
-  ],
-  'Tazas personalizadas': [
-    { name: 'archivo', input_type: 'file' },
-    { name: 'cantidad', input_type: 'number' },
-    { name: 'tipo_taza', input_type: 'select', options: ['normal', 'mágica'] }
-  ],
-  'Camisas personalizadas': [
-    { name: 'archivo', input_type: 'file' },
-    { name: 'color', input_type: 'select', options: ['Blanco', 'Negro', 'Azul', 'Rojo', 'Verde', 'Amarillo', 'Gris', 'Rosa', 'Naranja', 'Morado'] },
-    { name: 'talla', input_type: 'select', options: ['S', 'M', 'L', 'XL', 'XXL'] },
-    { name: 'cantidad', input_type: 'number' }
-  ]
-};
 
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
@@ -104,124 +111,33 @@ export default function ServicesPage() {
   const [isDiscountOpen, setIsDiscountOpen] = useState(false);
   const [selectedServiceForDiscount, setSelectedServiceForDiscount] = useState<Service | null>(null);
   const [selectedServiceType, setSelectedServiceType] = useState<string>('');
-  const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([]);
-  
+
   // Estados para inventario
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [selectedServiceForInventory, setSelectedServiceForInventory] = useState<Service | null>(null);
-  const [serviceInventory, setServiceInventory] = useState<ServiceInventory[]>([]);
   const [isAddingInventory, setIsAddingInventory] = useState(false);
+
+  // Estados para features y applications
+  const [features, setFeatures] = useState<{ icon: string; title: string; desc: string }[]>([]);
+  const [applications, setApplications] = useState<string[]>([]);
 
   const handleServiceTypeChange = (serviceType: string) => {
     setSelectedServiceType(serviceType);
-    setServiceOptions(SERVICE_TEMPLATES[serviceType] || []);
   };
 
   // Inicializar opciones cuando se está editando un servicio
   useEffect(() => {
     if (currentService) {
       setSelectedServiceType(currentService.name);
-      setServiceOptions(SERVICE_TEMPLATES[currentService.name] || []);
+      setFeatures(currentService.features || []);
+      setApplications(currentService.applications || []);
     } else {
       setSelectedServiceType('');
-      setServiceOptions([]);
+      setFeatures([]);
+      setApplications([]);
     }
   }, [currentService]);
 
-  // Función para abrir el modal de inventario
-  const handleOpenInventory = async (service: Service) => {
-    try {
-      setSelectedServiceForInventory(service);
-      setIsInventoryOpen(true);
-      
-      // Cargar el inventario del servicio
-      const inventory = await serviceInventoryService.getServiceInventory(service.id!);
-      setServiceInventory(inventory);
-    } catch (error) {
-      console.error('Error al cargar inventario:', error);
-      Swal.fire({
-        title: "Error",
-        text: "No se pudo cargar el inventario",
-        icon: "error",
-        timer: 1500
-      });
-    }
-  };
-
-  // Función para agregar item al inventario
-  const handleAddInventoryItem = async (formData: FormData) => {
-    try {
-      if (!selectedServiceForInventory) return;
-
-      const item = {
-        variant_name: formData.get('variant_name') as string,
-        quantity: parseInt(formData.get('quantity') as string),
-        price_modifier: parseFloat(formData.get('price_modifier') as string) || 0
-      };
-
-      await serviceInventoryService.addInventoryItem(selectedServiceForInventory.id!, item);
-      
-      // Recargar inventario
-      const inventory = await serviceInventoryService.getServiceInventory(selectedServiceForInventory.id!);
-      setServiceInventory(inventory);
-
-      Swal.fire({
-        title: "Éxito",
-        text: "Item agregado al inventario",
-        icon: "success",
-        timer: 1500
-      });
-    } catch (error) {
-      console.error('Error al agregar item:', error);
-      Swal.fire({
-        title: "Error",
-        text: "No se pudo agregar el item",
-        icon: "error",
-        timer: 1500
-      });
-    }
-  };
-
-  // Función para eliminar item del inventario
-  const handleDeleteInventoryItem = async (itemId: number) => {
-    try {
-      const result = await Swal.fire({
-        title: "¿Estás seguro?",
-        text: "No podrás revertir esta acción",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
-        confirmButtonText: "Sí, eliminar",
-        cancelButtonText: "Cancelar"
-      });
-
-      if (result.isConfirmed) {
-        await serviceInventoryService.deleteInventoryItem(itemId);
-        
-        // Recargar inventario
-        if (selectedServiceForInventory) {
-          const inventory = await serviceInventoryService.getServiceInventory(selectedServiceForInventory.id!);
-          setServiceInventory(inventory);
-        }
-
-        Swal.fire({
-          title: "Eliminado",
-          text: "Item eliminado correctamente",
-          icon: "success",
-          timer: 1500
-        });
-      }
-    } catch (error) {
-      console.error('Error al eliminar item:', error);
-      Swal.fire({
-        title: "Error",
-        text: "No se pudo eliminar el item",
-        icon: "error",
-        timer: 1500
-      });
-    }
-  };
 
   // Cargar servicios al montar el componente
   useEffect(() => {
@@ -233,14 +149,14 @@ export default function ServicesPage() {
         setServices(servicesData);
       } catch (error) {
         console.error('Error al cargar servicios:', error);
-        
+
         let errorMessage = "No se pudieron cargar los servicios";
         if (error instanceof Error) {
           errorMessage = error.message;
         } else if (typeof error === 'object' && error !== null && 'message' in error) {
           errorMessage = (error as any).message;
         }
-        
+
         Swal.fire({
           title: "Error",
           text: errorMessage,
@@ -258,13 +174,15 @@ export default function ServicesPage() {
   const handleCreateService = async (formData: FormData) => {
     try {
       console.log('Iniciando creación de servicio...');
-      
+
       const serviceName = formData.get('name') as string;
       const serviceData: Service = {
         name: serviceName,
         description: formData.get('description') as string,
+        short_description: formData.get('short_description') as string,
         base_price: parseFloat(formData.get('base_price') as string),
-        options: SERVICE_TEMPLATES[serviceName] || []
+        features,
+        applications,
       };
 
       const mainImage = formData.get('mainImage') as File;
@@ -287,7 +205,7 @@ export default function ServicesPage() {
       console.log('Actualizando lista de servicios...');
       const updatedServices = await servicesService.getAllServices();
       console.log('Servicios actualizados:', updatedServices);
-      
+
       setServices(updatedServices);
       setIsOpen(false);
 
@@ -299,7 +217,7 @@ export default function ServicesPage() {
       });
     } catch (error) {
       console.error('Error completo al crear servicio:', error);
-      
+
       // Mostrar error más específico
       let errorMessage = "No se pudo crear el servicio";
       if (error instanceof Error) {
@@ -307,7 +225,7 @@ export default function ServicesPage() {
       } else if (typeof error === 'object' && error !== null && 'message' in error) {
         errorMessage = (error as any).message;
       }
-      
+
       Swal.fire({
         title: "Error",
         text: errorMessage,
@@ -325,15 +243,17 @@ export default function ServicesPage() {
       const serviceData: Service = {
         name: serviceName,
         description: formData.get('description') as string,
+        short_description: formData.get('short_description') as string,
         base_price: parseFloat(formData.get('base_price') as string),
-        options: SERVICE_TEMPLATES[serviceName] || []
+        features,
+        applications,
       };
 
       const mainImage = formData.get('mainImage') as File;
       const secondaryImages = formData.getAll('secondaryImages') as File[];
 
       const hasMainImage = mainImage && mainImage.size > 0;
-      const hasSecondaryImages = secondaryImages && secondaryImages.length > 0 && 
+      const hasSecondaryImages = secondaryImages && secondaryImages.length > 0 &&
         secondaryImages.some(img => img.size > 0);
 
       await servicesService.updateService(
@@ -399,63 +319,6 @@ export default function ServicesPage() {
     }
   };
 
-  const handleApplyDiscount = async (formData: FormData) => {
-    try {
-      if (!selectedServiceForDiscount) return;
-
-      const discountType = formData.get('discountType') as 'percentage' | 'price';
-      const value = parseFloat(formData.get('value') as string);
-
-      await servicesService.applyDiscount(
-        selectedServiceForDiscount.id!,
-        discountType,
-        value
-      );
-
-      const updatedServices = await servicesService.getAllServices();
-      setServices(updatedServices);
-      setIsDiscountOpen(false);
-      setSelectedServiceForDiscount(null);
-
-      Swal.fire({
-        title: "Éxito",
-        text: "Descuento aplicado correctamente",
-        icon: "success",
-        timer: 1500
-      });
-    } catch (error) {
-      console.error('Error al aplicar descuento:', error);
-      Swal.fire({
-        title: "Error",
-        text: "No se pudo aplicar el descuento",
-        icon: "error",
-        timer: 1500
-      });
-    }
-  };
-
-  const handleRemoveDiscount = async (id: number) => {
-    try {
-      await servicesService.removeDiscount(id);
-      const updatedServices = await servicesService.getAllServices();
-      setServices(updatedServices);
-      Swal.fire({
-        title: "Éxito",
-        text: "Descuento eliminado correctamente",
-        icon: "success",
-        timer: 1500
-      });
-    } catch (error) {
-      console.error('Error al eliminar descuento:', error);
-      Swal.fire({
-        title: "Error",
-        text: "No se pudo eliminar el descuento",
-        icon: "error",
-        timer: 1500
-      });
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -479,10 +342,33 @@ export default function ServicesPage() {
             Crear Nuevo Servicio
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <form onSubmit={async (e) => {
             e.preventDefault();
             setIsSubmitting(true);
+            // Validación de features y applications
+            const hasEmptyFeature = features.some(f => !f.title.trim() || !f.desc.trim());
+            const hasEmptyApplication = applications.some(a => !a.trim());
+            if (hasEmptyFeature) {
+              Swal.fire({
+                title: "Error",
+                text: "Todas las características deben tener título y descripción.",
+                icon: "error",
+                timer: 2000
+              });
+              setIsSubmitting(false);
+              return;
+            }
+            if (hasEmptyApplication) {
+              Swal.fire({
+                title: "Error",
+                text: "No puede haber aplicaciones vacías.",
+                icon: "error",
+                timer: 2000
+              });
+              setIsSubmitting(false);
+              return;
+            }
             try {
               const formData = new FormData(e.currentTarget);
               if (currentService) {
@@ -508,136 +394,178 @@ export default function ServicesPage() {
                 {currentService ? 'Modifica los detalles del servicio.' : 'Completa los detalles para añadir un nuevo servicio.'}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">Nombre</Label>
-                <Select 
-                  name="name" 
-                  defaultValue={currentService?.name}
-                  onValueChange={handleServiceTypeChange}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecciona un tipo de servicio" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.keys(SERVICE_TEMPLATES).map((serviceName) => (
-                      <SelectItem key={serviceName} value={serviceName}>
-                        {serviceName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <div className="grid grid-cols-1 gap-3 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">Nombre</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    type="text"
+                    defaultValue={currentService?.name}
+                    placeholder="Nombre del servicio"
+                    className="col-span-3"
+                    required
+                  />
+                </div>
 
-              {/* Mostrar opciones del servicio seleccionado */}
-              {serviceOptions.length > 0 && (
-                <div className="grid grid-cols-4 items-start gap-4">
-                  <Label className="text-right">Opciones del Servicio</Label>
-                  <div className="col-span-3">
-                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                      <h4 className="font-medium mb-3 text-blue-800">Campos requeridos para "{selectedServiceType}":</h4>
-                      <div className="space-y-3">
-                        {serviceOptions.map((option, index) => (
-                          <div key={index} className="flex items-center gap-3 text-sm bg-white p-2 rounded border">
-                            <Badge variant="secondary" className="text-xs">
-                              {option.input_type === 'text' && 'Texto'}
-                              {option.input_type === 'number' && 'Número'}
-                              {option.input_type === 'select' && 'Selección'}
-                              {option.input_type === 'file' && 'Archivo'}
-                              {option.input_type === 'time' && 'Hora'}
-                            </Badge>
-                            <span className="font-medium text-gray-800">{option.name}</span>
-                            {option.options && option.input_type === 'select' && (
-                              <span className="text-gray-600 text-xs">
-                                Opciones: {option.options.join(', ')}
-                              </span>
-                            )}
-                            {option.options && option.input_type === 'text' && (
-                              <span className="text-gray-600 text-xs">
-                                Valor sugerido: {option.options[0]}
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <p className="text-xs text-blue-600 mt-3">
-                        💡 Estos campos se mostrarán al cliente cuando solicite este servicio
-                      </p>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="base_price" className="text-right">Precio Base</Label>
+                  <Input
+                    id="base_price"
+                    name="base_price"
+                    type="number"
+                    step="0.01"
+                    defaultValue={currentService?.base_price || ''}
+                    placeholder="Precio base del servicio"
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="short_description" className="text-right">Descripción corta</Label>
+                  <input
+                    id="short_description"
+                    name="short_description"
+                    defaultValue={currentService?.short_description || ''}
+                    placeholder="Descripción corta para este servicio"
+                    className="col-span-3 w-full border rounded-md p-2"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="description" className="text-right">Descripción</Label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    defaultValue={currentService?.description || ''}
+                    placeholder="Descripción del servicio"
+                    className="col-span-3 min-h-[100px] w-full border rounded-md p-2"
+                    required
+                  />
+                </div>
+                {currentService && currentService.images && (
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label className="text-right">Imágenes Actuales</Label>
+                    <div className="col-span-3">
+                      <ProductImageDisplay images={currentService.images} />
                     </div>
                   </div>
-                </div>
-              )}
 
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="base_price" className="text-right">Precio Base</Label>
-                <Input
-                  id="base_price"
-                  name="base_price"
-                  type="number"
-                  step="0.01"
-                  defaultValue={currentService?.base_price || ''}
-                  placeholder="Precio base del servicio"
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="description" className="text-right">Descripción</Label>
-                <textarea
-                  id="description"
-                  name="description"
-                  defaultValue={currentService?.description || ''}
-                  placeholder="Descripción del servicio"
-                  className="col-span-3 min-h-[100px] w-full border rounded-md p-2"
-                  required
-                />
-              </div>
-              {currentService && currentService.images && (
-                <div className="grid grid-cols-4 items-start gap-4">
-                  <Label className="text-right">Imágenes Actuales</Label>
-                  <div className="col-span-3">
-                    <ProductImageDisplay images={currentService.images} />
+                )}
+                {currentService && currentService.images && (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <span></span>
+                    <p className="text-xs text-gray-500 mt-1 col-span-3">
+                      *Si no seleccionas imagenes nuevas, se mantendrán la actuales
+                    </p>
                   </div>
+                )}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="mainImage" className="text-right">
+                    {currentService ? 'Cambiar Imagen Principal' : 'Imagen Principal'}
+                  </Label>
+                  <Input
+                    id="mainImage"
+                    name="mainImage"
+                    type="file"
+                    className="col-span-3"
+                    onChange={(e) => setSelectedImage(e.target.files?.[0] || null)}
+                    required={!currentService}
+                  />
                 </div>
-              )}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="mainImage" className="text-right">
-                  {currentService ? 'Cambiar Imagen Principal' : 'Imagen Principal'}
-                </Label>
-                <Input
-                  id="mainImage"
-                  name="mainImage"
-                  type="file"
-                  className="col-span-3"
-                  onChange={(e) => setSelectedImage(e.target.files?.[0] || null)}
-                  required={!currentService}
-                />
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="secondaryImages" className="text-right">
+                    {currentService ? 'Cambiar Imágenes Secundarias' : 'Imágenes Secundarias'}
+                  </Label>
+                  <Input
+                    id="secondaryImages"
+                    name="secondaryImages"
+                    type="file"
+                    multiple
+                    className="col-span-3"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length > 4) {
+                        Swal.fire({
+                          title: "Error",
+                          text: "Solo se permiten hasta 4 imágenes secundarias",
+                          icon: "error",
+                          timer: 1500
+                        });
+                        e.target.value = '';
+                      } else {
+                        setSelectedImage(files);
+                      }
+                    }}
+                  />
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="secondaryImages" className="text-right">
-                  {currentService ? 'Cambiar Imágenes Secundarias' : 'Imágenes Secundarias'}
-                </Label>
-                <Input
-                  id="secondaryImages"
-                  name="secondaryImages"
-                  type="file"
-                  multiple
-                  className="col-span-3"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    if (files.length > 4) {
-                      Swal.fire({
-                        title: "Error",
-                        text: "Solo se permiten hasta 4 imágenes secundarias",
-                        icon: "error",
-                        timer: 1500
-                      });
-                      e.target.value = '';
-                    } else {
-                      setSelectedImage(files);
-                    }
-                  }}
-                />
+
+              {/* Features dinámicas */}
+              <div className="col-span-4">
+                <Label className="block mb-2">Características</Label>
+                {features.map((feature, idx) => (
+                  <div key={idx} className="flex flex-col md:flex-row gap-2 mb-2 items-center w-full">
+                    <Select
+                      value={feature.icon}
+                      onValueChange={icon => setFeatures(f => f.map((ft, i) => i === idx ? { ...ft, icon } : ft))}
+                    >
+                      <SelectTrigger className="w-16">
+                        <SelectValue>{feature.icon}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <div className="grid grid-cols-4 gap-2 p-2 h-48 overflow-y-auto">
+                          {EMOJI_LIST.map(e => (
+                            <SelectItem
+                              key={e}
+                              value={e}
+                              className="flex items-center justify-center text-2xl cursor-pointer p-2 hover:bg-gray-100"
+                            >
+                              {e}
+                            </SelectItem>
+                          ))}
+                        </div>
+                      </SelectContent>
+
+                    </Select>
+                    <Input
+                      placeholder="Título"
+                      value={feature.title}
+                      onChange={e => setFeatures(f => f.map((ft, i) => i === idx ? { ...ft, title: e.target.value } : ft))}
+                      className="w-full md:w-40"
+                    />
+                    <Input
+                      placeholder="Descripción"
+                      value={feature.desc}
+                      onChange={e => setFeatures(f => f.map((ft, i) => i === idx ? { ...ft, desc: e.target.value } : ft))}
+                      className="flex-1"
+                    />
+                    <Button type="button" variant="destructive" size="icon" onClick={() => setFeatures(f => f.filter((_, i) => i !== idx))}>✕</Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => setFeatures(f => [...f, { icon: EMOJI_LIST[0], title: '', desc: '' }])}>
+                  + Agregar característica
+                </Button>
+              </div>
+
+              {/* Applications dinámicas */}
+              <div className="col-span-4 mt-4">
+                <Label className="block mb-2">Aplicaciones perfectas</Label>
+                {applications.map((app, idx) => (
+                  <div key={idx} className="flex gap-2 mb-2 items-center">
+                    <Input
+                      placeholder="Aplicación (ej: Camisetas)"
+                      value={app}
+                      onChange={e => setApplications(a => a.map((ap, i) => i === idx ? e.target.value : ap))}
+                      className="flex-1"
+                    />
+                    <Button type="button" variant="destructive" size="icon" onClick={() => setApplications(a => a.filter((_, i) => i !== idx))}>✕</Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => setApplications(a => [...a, ''])}>
+                  + Agregar aplicación
+                </Button>
               </div>
             </div>
             <DialogFooter className="bottom-0 bg-white z-10 pt-2">
@@ -679,9 +607,10 @@ export default function ServicesPage() {
                   <TableHead>ID</TableHead>
                   <TableHead>Imagen</TableHead>
                   <TableHead>Nombre</TableHead>
+                  <TableHead>Descripcion</TableHead>
+                  <TableHead>Caracteristicas</TableHead>
+                  <TableHead>Aplicaciones</TableHead>
                   <TableHead>Precio Base</TableHead>
-                  <TableHead>Descuento</TableHead>
-                  <TableHead>Precio Final</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -704,25 +633,27 @@ export default function ServicesPage() {
                       </div>
                     </TableCell>
                     <TableCell>{service.name}</TableCell>
-                    <TableCell>${service.base_price}</TableCell>
+                    <TableCell>{service.short_description}</TableCell>
+
                     <TableCell>
-                      {service.discount_percentage && service.discount_percentage > 0 ? (
-                        <Badge variant="destructive" className="flex items-center gap-1">
-                          <Percent className="h-3 w-3" />
-                          {Number(service.discount_percentage).toFixed(0)}%
-                        </Badge>
-                      ) : (
-                        "-"
-                      )}
+                      <div className="flex flex-col gap-1">
+                        {service.features?.map((feature, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <span className="text-xl">{feature.icon}</span>
+                            <div>
+                              <div className="font-medium">{feature.title}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </TableCell>
+
+                    <TableCell>{service.applications}</TableCell>
+
                     <TableCell>
-                      {service.discount_percentage ? (
-                        <span className="font-medium">
-                          ${(service.base_price * (1 - service.discount_percentage / 100)).toFixed(2)}
-                        </span>
-                      ) : (
-                        "-"
-                      )}
+                      <span className="font-medium">
+                        ${Number(service.base_price).toFixed(2)}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -738,31 +669,6 @@ export default function ServicesPage() {
                           }}>
                             Editar
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleOpenInventory(service)}>
-                            <Package className="h-4 w-4 mr-2" />
-                            Gestionar Inventario
-                          </DropdownMenuItem>
-                          {Number(service.discount_percentage) > 0 ? (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => handleRemoveDiscount(service.id!)}
-                              >
-                                Eliminar Descuento
-                              </DropdownMenuItem>
-                            </>
-                          ) : (
-                            <>
-                              <DropdownMenuItem onClick={() => {
-                                setSelectedServiceForDiscount(service);
-                                setIsDiscountOpen(true);
-                              }}>
-                                Agregar Descuento
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                            </>
-                          )}
                           <DropdownMenuItem
                             className="text-red-600"
                             onClick={() => handleDeleteService(service.id!)}
@@ -779,181 +685,6 @@ export default function ServicesPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Diálogo de Descuento */}
-      <Dialog open={isDiscountOpen} onOpenChange={setIsDiscountOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.currentTarget);
-            await handleApplyDiscount(formData);
-          }}>
-            <DialogHeader>
-              <DialogTitle>Aplicar Descuento</DialogTitle>
-              <DialogDescription>
-                Aplica un descuento al servicio {selectedServiceForDiscount?.name}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="discountType" className="text-right">Tipo</Label>
-                <Select name="discountType" defaultValue="percentage">
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecciona el tipo de descuento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percentage">Porcentaje</SelectItem>
-                    <SelectItem value="price">Precio Final</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="value" className="text-right">Valor</Label>
-                <Input
-                  id="value"
-                  name="value"
-                  type="number"
-                  step="0.01"
-                  placeholder="Ingresa el valor"
-                  className="col-span-3"
-                  required
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Aplicar Descuento</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Diálogo de Inventario */}
-      <Dialog open={isInventoryOpen} onOpenChange={setIsInventoryOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Gestionar Inventario - {selectedServiceForInventory?.name}</DialogTitle>
-            <DialogDescription>
-              Agrega y gestiona el inventario disponible para este servicio
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {/* Formulario para agregar item */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-medium mb-3">Agregar Nuevo Item</h4>
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                setIsAddingInventory(true);
-                try {
-                  const formData = new FormData(e.currentTarget);
-                  await handleAddInventoryItem(formData);
-                  (e.target as HTMLFormElement).reset();
-                } finally {
-                  setIsAddingInventory(false);
-                }
-              }}>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="variant_name">Variante</Label>
-                    <Input
-                      id="variant_name"
-                      name="variant_name"
-                      placeholder="ej: Camisa Blanca S, Taza Normal"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="quantity">Cantidad</Label>
-                    <Input
-                      id="quantity"
-                      name="quantity"
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="price_modifier">Precio Adicional</Label>
-                    <Input
-                      id="price_modifier"
-                      name="price_modifier"
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-                <Button type="submit" className="mt-3" disabled={isAddingInventory}>
-                  {isAddingInventory ? 'Agregando...' : 'Agregar Item'}
-                </Button>
-              </form>
-            </div>
-
-            {/* Tabla de inventario */}
-            <div>
-              <h4 className="font-medium mb-3">Inventario Actual</h4>
-              <div className="border rounded-lg">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Variante</TableHead>
-                      <TableHead>Cantidad</TableHead>
-                      <TableHead>Precio Adicional</TableHead>
-                      <TableHead>Precio Total</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {serviceInventory.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center text-gray-500 py-8">
-                          No hay items en el inventario
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      serviceInventory.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.variant_name}</TableCell>
-                          <TableCell>
-                            <Badge variant={item.quantity > 0 ? "default" : "destructive"}>
-                              {item.quantity}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {item.price_modifier && item.price_modifier > 0 ? (
-                              <span className="text-green-600">+${item.price_modifier}</span>
-                            ) : item.price_modifier && item.price_modifier < 0 ? (
-                              <span className="text-red-600">${item.price_modifier}</span>
-                            ) : (
-                              <span className="text-gray-500">$0.00</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-medium">
-                              ${(Number(selectedServiceForInventory?.base_price) || 0) + (Number(item.price_modifier) || 0)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteInventoryItem(item.id!)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              Eliminar
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
